@@ -1,0 +1,5 @@
+pytest
+langgraph
+langchain
+langchain-ollama
+pydantic
