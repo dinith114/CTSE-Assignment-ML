@@ -1,14 +1,10 @@
-pytest
-langgraph
-langchain
-langchain-ollama
-pydantic
+pytest==8.4.2
+langgraph==0.0.20
+pydantic==2.13.3
 
 # Core dependencies for Member 4's component
 requests>=2.31.0
 # No other heavy dependencies needed for distance calculation
 
 # For full project (shared across team)
-ollama>=0.1.0
-langgraph>=0.0.20
-crewai>=0.28.0  # or langgraph based on team choice
+# Ollama runtime is installed separately on the machine (CLI), not via pip.
