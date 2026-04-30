@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
 from app.tools.distance_calculator_tool import DistanceCalculatorTool
+from app.llm.ollama_client import run_ollama
 from app.logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -45,7 +46,8 @@ class TravelRiskAgent:
         """
         self.distance_tool = DistanceCalculatorTool(cache_file=cache_file)
         self.agent_name = "TravelRiskAssessmentAgent"
-        self.llm_model = None  # Will be set when integrating with workflow
+        self.use_local_llm = os.getenv("USE_LOCAL_LLM", "true").lower() == "true"
+        self.llm_model = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
         
     def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -82,13 +84,25 @@ class TravelRiskAgent:
             
             # Perform risk assessment
             risk_assessment = self._assess_risk(travel_info, severity)
+
+            # Optional local LLM reasoning for explainability.
+            if self.use_local_llm:
+                llm_reasoning = self._generate_llm_reasoning(
+                    patient_city=patient_city,
+                    hospital_city=hospital_city,
+                    severity=severity,
+                    travel_info=travel_info,
+                    risk_assessment=risk_assessment,
+                )
+                if llm_reasoning:
+                    risk_assessment["llm_reasoning"] = llm_reasoning
             
             # Update state with results
             state["travel_info"] = travel_info
             state["risk_assessment"] = risk_assessment
             
             # Add to conversation log for observability
-            if "conversation_log" not in state:
+            if not isinstance(state.get("conversation_log"), list):
                 state["conversation_log"] = []
             state["conversation_log"].append({
                 "agent": self.agent_name,
@@ -110,6 +124,40 @@ class TravelRiskAgent:
             state["error"] = str(e)
             state["travel_info"] = {"error": str(e)}
             return state
+
+    def _generate_llm_reasoning(
+        self,
+        patient_city: str,
+        hospital_city: str,
+        severity: str,
+        travel_info: Dict[str, Any],
+        risk_assessment: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Generate a concise local-LLM explanation for the recommendation.
+
+        Returns None if Ollama is unavailable.
+        """
+        prompt = (
+            "You are a healthcare travel risk assistant for Sri Lanka. "
+            "Provide one or two concise sentences explaining the recommendation. "
+            "Only discuss road or local travel options such as car, bus, train, teleconsultation, or nearest facility. "
+            "Do not mention flights, airplanes, domestic flights, or any unrelated transport. "
+            "Do not invent new facts; use only the provided case details.\n"
+            f"Patient location: {patient_city}\n"
+            f"Hospital location: {hospital_city}\n"
+            f"Severity: {severity}\n"
+            f"Distance km: {travel_info.get('distance_km')}\n"
+            f"Travel hours: {travel_info.get('travel_time_hours')}\n"
+            f"Risk level: {risk_assessment.get('risk_level')}\n"
+            f"Recommendation: {risk_assessment.get('recommendation')}"
+        )
+
+        output = run_ollama(prompt=prompt, model=self.llm_model, timeout=30)
+        if not output:
+            logger.info("Local Ollama reasoning unavailable; continuing with rule-based output.")
+            return None
+        return output.strip()
     
     def _assess_risk(self, travel_info: Dict[str, Any], severity: str) -> Dict[str, Any]:
         """
@@ -182,6 +230,9 @@ class TravelRiskAgent:
         💡 Recommendation: {risk.get('recommendation', 'N/A')}
         🗺️ Route Advice: {travel_info.get('route_advice', 'N/A')}
         """
+
+        if risk.get("llm_reasoning"):
+            summary += f"\n🤖 LLM Reasoning: {risk['llm_reasoning']}"
         
         if travel_info.get('warning_message'):
             summary += f"\n⚠️ {travel_info['warning_message']}"

@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .env
 frontend/node_modules/
+app/logs/
+*.log

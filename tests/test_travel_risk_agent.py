@@ -8,6 +8,7 @@ import sys
 import os
 import json
 import tempfile
+import requests
 from unittest.mock import patch, MagicMock
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,23 +22,24 @@ class TestDistanceCalculatorTool(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        # Use temporary file for cache during tests
-        self.temp_cache = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
-        self.cache_path = self.temp_cache.name
+        # Use a temporary directory so Windows can cleanly remove the cache.
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.cache_path = os.path.join(self.temp_dir.name, 'cache.json')
+        with open(self.cache_path, 'w', encoding='utf-8') as cache_file:
+            json.dump({}, cache_file)
         self.tool = DistanceCalculatorTool(cache_file=self.cache_path)
     
     def tearDown(self):
         """Clean up test fixtures."""
-        if os.path.exists(self.cache_path):
-            os.unlink(self.cache_path)
+        self.temp_dir.cleanup()
     
     def test_haversine_distance_known_values(self):
         """Property test: Distance calculation should be symmetric and accurate."""
         # Colombo (6.9271, 79.8612) to Kandy (7.2906, 80.6337)
         distance = self.tool._haversine_distance(6.9271, 79.8612, 7.2906, 80.6337)
         
-        # Expected distance ~115 km
-        self.assertAlmostEqual(distance, 115, delta=10)
+        # Expected distance is about 94 km with the current coordinates
+        self.assertAlmostEqual(distance, 94.3, delta=1.0)
         
         # Test symmetry
         distance_reverse = self.tool._haversine_distance(7.2906, 80.6337, 6.9271, 79.8612)
@@ -75,15 +77,15 @@ class TestDistanceCalculatorTool(unittest.TestCase):
     
     @patch('app.tools.distance_calculator_tool.requests.get')
     def test_geocoding_api_call(self, mock_get):
-        """Test Photon API integration with mock response."""
+        """Test Nominatim API integration with mock response."""
         # Mock successful API response
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            'features': [{
-                'geometry': {'coordinates': [79.8612, 6.9271]},
-                'properties': {'name': 'Colombo'}
-            }]
-        }
+        mock_response.json.return_value = [
+            {
+                'lat': '6.9271',
+                'lon': '79.8612'
+            }
+        ]
         mock_get.return_value = mock_response
         
         coords = self.tool._geocode_city("Colombo")
@@ -96,21 +98,18 @@ class TestDistanceCalculatorTool(unittest.TestCase):
     @patch('app.tools.distance_calculator_tool.requests.get')
     def test_geocoding_failure_handling(self, mock_get):
         """Test graceful handling of API failures."""
-        mock_get.side_effect = Exception("API down")
+        mock_get.side_effect = requests.RequestException("API down")
         
         with self.assertRaises(Exception):
             self.tool._geocode_city("Unknown City")
     
     def test_calculate_travel_complete_flow(self):
-        """Integration test: Complete travel calculation with real API."""
-        # Skip if no internet (for CI/CD)
-        import socket
-        try:
-            socket.create_connection(("photon.komoot.io", 80), timeout=5)
-        except OSError:
-            self.skipTest("No internet connection")
-        
-        result = self.tool.calculate_travel("Colombo, Sri Lanka", "Kandy, Sri Lanka", "high")
+        """Integration test: Complete travel calculation with deterministic mocked data."""
+        with patch.object(self.tool, '_geocode_city') as mock_geocode, \
+             patch.object(self.tool, '_get_road_distance') as mock_road:
+            mock_geocode.side_effect = [(6.9271, 79.8612), (7.2906, 80.6337)]
+            mock_road.return_value = 115.5
+            result = self.tool.calculate_travel("Colombo, Sri Lanka", "Kandy, Sri Lanka", "high")
         
         # Validate output structure
         self.assertIn("distance_km", result)
@@ -118,8 +117,8 @@ class TestDistanceCalculatorTool(unittest.TestCase):
         self.assertIn("route_advice", result)
         self.assertIn("warning_message", result)
         
-        # Distance should be roughly 100-130 km
-        self.assertTrue(80 < result["distance_km"] < 150)
+        # Distance should reflect the mocked OSRM route
+        self.assertAlmostEqual(result["distance_km"], 115.5, delta=0.1)
         
         # High severity should generate warning for this distance
         self.assertIsNotNone(result["warning_message"])

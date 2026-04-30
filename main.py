@@ -4,7 +4,7 @@ Demonstrates full workflow with all 4 agents.
 """
 
 from app.agents.travel_risk_agent import TravelRiskAgent
-from app.tools.distance_calculator_tool import distance_calculator_tool
+from app.workflow import run_workflow
 from app.logger_config import get_logger
 import json
 import argparse
@@ -30,32 +30,19 @@ def run_e_channeling_workflow(patient_input: dict, hospital_override: str = None
         "travel_info": None,  # To be set by YOU (Member 4)
     }
     
-    # Simulate Member 1 (Symptom Triage)
-    logger.info("Step 1: Symptom Triage Agent")
-    state["severity"] = "high"  # Placeholder
-    
-    # Simulate Member 2 (Medical Routing)
-    logger.info("Step 2: Medical Routing Agent")
-    state["specialist"] = "Cardiologist"
-    # Default hospital assignment; allow override from caller or patient_input
-    state["hospital_city"] = patient_input.get("hospital_city") or hospital_override or "Colombo, Sri Lanka"
-    # Allow severity override if provided
+    # Inject CLI overrides into initial state before orchestration.
+    state["hospital_city"] = patient_input.get("hospital_city") or hospital_override
     if severity_override:
         state["severity"] = severity_override
-    
-    # Simulate Member 3 (Appointment Coordinator)
-    logger.info("Step 3: Appointment Coordinator Agent")
-    state["appointment"] = {"date": "2024-12-15", "time": "10:00 AM"}
-    
-    # YOUR AGENT (Member 4): Travel Risk Assessment
-    logger.info("Step 4: Travel Risk Assessment Agent")
-    travel_agent = TravelRiskAgent()
-    final_state = travel_agent.process(state)
+
+    # Run LangGraph workflow orchestration.
+    final_state = run_workflow(state)
     
     # Display results
     print("\n" + "="*60)
     print("FINAL APPOINTMENT RECOMMENDATION")
     print("="*60)
+    travel_agent = TravelRiskAgent()
     print(travel_agent.get_travel_summary(final_state))
     
     if final_state.get("risk_assessment", {}).get("requires_alternative"):
