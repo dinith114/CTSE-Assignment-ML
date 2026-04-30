@@ -141,7 +141,9 @@ class TravelRiskAgent:
         prompt = (
             "You are a healthcare travel risk assistant for Sri Lanka. "
             "Provide one or two concise sentences explaining the recommendation. "
-            "Only discuss road or local travel options such as car, bus, train, teleconsultation, or nearest facility. "
+            "Follow this priority order exactly: (1) if severity is high or urgent, recommend 1990 Suwa Seriya or ambulance first; (2) if the trip is long (over 50 km) and severity is not high, recommend car or taxi; (3) otherwise recommend other options such as bus, train, teleconsultation, or nearest facility. "
+            "Do not recommend only bus for long trips. "
+            "Only discuss practical Sri Lankan travel and care options such as car, taxi, bus, train, ambulance, 1990 Suwa Seriya, teleconsultation, or nearest facility. "
             "Do not mention flights, airplanes, domestic flights, or any unrelated transport. "
             "Do not invent new facts; use only the provided case details.\n"
             f"Patient location: {patient_city}\n"
@@ -156,8 +158,42 @@ class TravelRiskAgent:
         output = run_ollama(prompt=prompt, model=self.llm_model, timeout=30)
         if not output:
             logger.info("Local Ollama reasoning unavailable; continuing with rule-based output.")
-            return None
-        return output.strip()
+            output = ""
+
+        clean_output = output.strip()
+        distance_km = float(travel_info.get("distance_km", 0) or 0)
+        severity_lower = severity.lower()
+
+        if severity_lower in ["high", "urgent"]:
+            fallback = (
+                "Because this is a high-severity case, use 1990 Suwa Seriya or an ambulance first, "
+                "and seek the nearest facility if urgent transport is needed."
+            )
+        elif distance_km > 50:
+            fallback = (
+                "Because the journey is long, car or taxi is recommended for direct travel, "
+                "with teleconsultation or bus/train as secondary options if appropriate."
+            )
+        else:
+            fallback = (
+                "For this shorter trip, consider bus, train, taxi, or teleconsultation depending on comfort and urgency."
+            )
+
+        if not clean_output:
+            return fallback
+
+        normalized = clean_output.lower()
+        if severity_lower in ["high", "urgent"]:
+            if "1990" not in normalized and "ambulance" not in normalized:
+                return fallback
+        elif distance_km > 50:
+            if "car" not in normalized and "taxi" not in normalized:
+                return fallback
+        else:
+            if all(option not in normalized for option in ["bus", "train", "taxi", "teleconsultation"]):
+                return fallback
+
+        return clean_output
     
     def _assess_risk(self, travel_info: Dict[str, Any], severity: str) -> Dict[str, Any]:
         """
