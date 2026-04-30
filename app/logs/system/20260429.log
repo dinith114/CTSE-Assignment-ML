@@ -1,0 +1,124 @@
+2026-04-29 19:31:34,144 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:31:34,144 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:31:34,144 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:31:34,145 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:31:34,145 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:31:35,452 - app.agents.travel_risk_agent - ERROR - TravelRiskAssessmentAgent: Error processing travel assessment: 403 Client Error: Forbidden for url: https://photon.komoot.io/api?q=Kandy%2C+Sri+Lanka&limit=1&lang=en
+2026-04-29 19:33:50,694 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:33:50,695 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:33:50,695 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:33:50,695 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:33:50,703 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:33:50,704 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - MEDIUM
+2026-04-29 19:39:40,184 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:39:40,184 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:39:40,184 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:39:40,200 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:39:40,200 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:39:40,200 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - MEDIUM
+2026-04-29 19:39:55,299 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:39:55,299 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:39:55,299 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:39:55,299 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:39:55,300 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:39:57,413 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - HIGH
+2026-04-29 19:52:26,446 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:52:26,447 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:52:26,447 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:52:26,448 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:52:26,448 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:52:27,961 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - MEDIUM
+2026-04-29 19:52:27,980 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:52:28,296 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 19:54:39,049 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:54:39,049 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:54:39,049 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:54:39,049 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:54:39,049 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:54:39,711 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - MEDIUM
+2026-04-29 19:54:39,727 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:54:40,373 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 19:59:50,345 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 19:59:50,346 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 19:59:50,346 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 19:59:50,346 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 19:59:50,347 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 19:59:50,347 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 20:02:19,054 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 20:02:19,054 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 20:02:19,054 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 20:02:19,054 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 20:02:19,054 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 20:02:20,252 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 20:10:27,549 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 20:10:27,549 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 20:10:27,549 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 20:10:27,549 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 20:10:27,549 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 20:10:29,554 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 20:50:35,905 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 20:50:35,906 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 20:50:35,906 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 20:50:35,906 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 20:50:35,907 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 20:50:37,097 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 20:51:42,626 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 20:51:42,626 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 20:51:42,627 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 20:51:42,627 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 20:51:42,627 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 20:51:43,790 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 20:52:56,853 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 20:52:56,855 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 20:52:56,855 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 20:52:56,855 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 20:52:56,855 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 20:52:58,275 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 20:54:31,752 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 20:54:31,753 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 20:54:31,754 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 20:54:31,754 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 20:54:31,755 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 20:54:33,043 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 21:31:31,683 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:31:31,683 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:31:31,683 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:31:31,683 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:31:31,699 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:31:32,698 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 21:32:42,183 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:32:42,183 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:32:42,183 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:32:42,183 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:32:42,183 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:32:43,312 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 21:33:29,099 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:33:29,099 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:33:29,099 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:33:29,099 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:33:29,099 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:33:30,133 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 21:34:38,225 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:34:38,225 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:34:38,225 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:34:38,225 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:34:38,225 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:34:39,196 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW
+2026-04-29 21:36:51,480 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:36:51,480 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:36:51,480 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:36:51,480 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:36:51,480 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:36:53,145 - app.agents.travel_risk_agent - ERROR - TravelRiskAssessmentAgent: Error processing travel assessment: Could not geocode patient city: Rathnapura
+2026-04-29 21:38:21,113 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:38:21,114 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:38:21,114 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:38:21,114 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:38:21,114 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:38:22,431 - app.agents.travel_risk_agent - ERROR - TravelRiskAssessmentAgent: Error processing travel assessment: Could not geocode hospital city: Barista Express Maharagama
+2026-04-29 21:39:15,343 - __main__ - INFO - Step 1: Symptom Triage Agent
+2026-04-29 21:39:15,343 - __main__ - INFO - Step 2: Medical Routing Agent
+2026-04-29 21:39:15,343 - __main__ - INFO - Step 3: Appointment Coordinator Agent
+2026-04-29 21:39:15,343 - __main__ - INFO - Step 4: Travel Risk Assessment Agent
+2026-04-29 21:39:15,343 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Starting travel risk assessment
+2026-04-29 21:39:17,963 - app.agents.travel_risk_agent - INFO - TravelRiskAssessmentAgent: Assessment complete - VERY_LOW

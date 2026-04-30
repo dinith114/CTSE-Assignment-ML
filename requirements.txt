@@ -3,3 +3,12 @@ langgraph
 langchain
 langchain-ollama
 pydantic
+
+# Core dependencies for Member 4's component
+requests>=2.31.0
+# No other heavy dependencies needed for distance calculation
+
+# For full project (shared across team)
+ollama>=0.1.0
+langgraph>=0.0.20
+crewai>=0.28.0  # or langgraph based on team choice
