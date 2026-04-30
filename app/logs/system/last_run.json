@@ -1,0 +1,61 @@
+{
+  "patient_text": "Chest pain and shortness of breath",
+  "patient_city": "Ratnapura",
+  "patient_location": "Ratnapura",
+  "severity": "medium",
+  "specialist": "Cardiologist",
+  "hospital_city": "Kings Hospital Colombo",
+  "appointment": {
+    "date": "2024-12-15",
+    "time": "10:00 AM"
+  },
+  "travel_info": {
+    "distance_km": 110.3,
+    "estimated_travel_time_minutes": 120,
+    "travel_time_hours": 2.0,
+    "route_advice": "Medium distance. Train or car recommended for best time.",
+    "warning_message": null,
+    "source_city": "Ratnapura",
+    "destination_city": "Kings Hospital Colombo",
+    "severity_assessed": "medium",
+    "travel_mode_used": "default"
+  },
+  "risk_assessment": {
+    "risk_level": "VERY_LOW",
+    "recommendation": "No significant travel concerns",
+    "travel_time_hours": 2.0,
+    "distance_km": 110.3,
+    "severity": "medium",
+    "requires_alternative": false
+  },
+  "conversation_log": [
+    {
+      "agent": "TravelRiskAssessmentAgent",
+      "timestamp": "2026-04-29T21:39:17.963520",
+      "input": {
+        "patient_city": "Ratnapura",
+        "hospital_city": "Kings Hospital Colombo",
+        "severity": "medium"
+      },
+      "output": {
+        "distance_km": 110.3,
+        "estimated_travel_time_minutes": 120,
+        "travel_time_hours": 2.0,
+        "route_advice": "Medium distance. Train or car recommended for best time.",
+        "warning_message": null,
+        "source_city": "Ratnapura",
+        "destination_city": "Kings Hospital Colombo",
+        "severity_assessed": "medium",
+        "travel_mode_used": "default"
+      },
+      "risk_assessment": {
+        "risk_level": "VERY_LOW",
+        "recommendation": "No significant travel concerns",
+        "travel_time_hours": 2.0,
+        "distance_km": 110.3,
+        "severity": "medium",
+        "requires_alternative": false
+      }
+    }
+  ]
+}
