@@ -1,0 +1,27 @@
+import sqlite3
+
+conn = sqlite3.connect("app/data/doctors.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE doctors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    specialty TEXT,
+    hospital TEXT,
+    location TEXT,
+    available_days TEXT
+)
+""")
+
+cursor.execute("""
+INSERT INTO doctors (name, specialty, hospital, location, available_days)
+VALUES 
+('Dr. Silva', 'cardiologist', 'Asiri Hospital', 'Colombo', 'Mon,Wed'),
+('Dr. Perera', 'dermatologist', 'Nawaloka', 'Colombo', 'Tue,Thu'),
+('Dr. Fernando', 'neurologist', 'Lanka Hospital', 'Colombo', 'Fri'),
+('Dr. Jayasuriya', 'general physician', 'Durdans', 'Colombo', 'Mon,Tue,Wed')
+""")
+
+conn.commit()
+conn.close()
