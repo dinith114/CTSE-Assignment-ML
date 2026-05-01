@@ -5,3 +5,5 @@ __pycache__/
 frontend/node_modules/
 app/logs/
 *.log
+app/logs/system/last_run.json
+app/data/city_distances/city_coordinates.json
