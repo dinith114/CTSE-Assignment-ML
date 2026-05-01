@@ -31,27 +31,44 @@ class MedicalRoutingAgent:
         prompt = (
             "You are an expert Medical Routing Agent in a hospital e-channeling system. "
             "Your job is to read the patient's symptoms, severity, and red flags, and output ONLY "
-            "a JSON object with the most appropriate medical specialist. DO NOT diagnose the patient. "
-            "Available specialists usually include: cardiologist, dermatologist, neurologist, general physician, "
-            "orthopedist, pediatrician, ENT, etc.\n\n"
+            "a JSON object with the most appropriate medical specialist. DO NOT diagnose the patient.\n\n"
             f"Symptoms: {', '.join(symptoms)}\n"
             f"Severity: {severity}\n"
             f"Red Flags: {', '.join(red_flags) if red_flags else 'None'}\n\n"
-            "Return EXACTLY this JSON format and nothing else:\n"
-            "{\n"
-            '  "primary_specialist": "lowercased specialist name",\n'
-            '  "alternative_specialists": ["alternative1", "alternative2"],\n'
-            '  "reasoning": "brief 1 sentence explanation of why"\n'
-            "}"
+            "Return EXACTLY this JSON string:\n"
+            '{"primary_specialist": "specialist", "alternative_specialists": ["other_specialist"], "reasoning": "reason"}'
         )
 
         try:
             # Query the LLM
             response_text = run_ollama(prompt, model=self.llm_model)
             
-            # Clean up response (sometimes LLMs wrap json in markdown blocks)
-            cleaned_response = response_text.replace("```json", "").replace("```", "").strip()
-            result = json.loads(cleaned_response)
+            # --- DEBUG: Print exactly what Triage sent and what LLM answered ---
+            print("\n" + "-"*40)
+            print(f"📥 INPUT FROM TRIAGE: Symptoms={symptoms}, Severity={severity}, RedFlags={red_flags}")
+            print(f"🤖 RAW LLM RESPONSE:\n{response_text}")
+            print("-"*40 + "\n")
+
+            # --- ROBUST JSON EXTRACTION ---
+            import re
+            
+            # Remove all forms of newlines immediately to prevent json.loads() from failing on multi-line text
+            response_flat = response_text.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+
+            # Extract only the content between the first { and the last }
+            json_match = re.search(r'(\{.*\})', response_flat)
+            
+            if json_match:
+                cleaned_response = json_match.group(1)
+                # Ensure no weird ascii characters are left
+                cleaned_response = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', cleaned_response)
+                
+                try:
+                    result = json.loads(cleaned_response)
+                except json.JSONDecodeError as decode_err:
+                    raise ValueError(f"Extracted json was invalid. Error: {decode_err}. Extracted string: {cleaned_response}")
+            else:
+                 raise ValueError(f"No JSON object found in LLM response: {response_flat}")
             
             return (
                 result.get("primary_specialist", "general physician"), 
@@ -106,6 +123,20 @@ class MedicalRoutingAgent:
         }
         
         state["routing"] = routing_result
+        
+        # Debugging print statement so you can see it in terminal!
+        print("\n" + "="*60)
+        print("MEDICAL ROUTING ASSESSMENT RESULTS")
+        print("="*60)
+        print(f"🏥 Selected Specialist: {primary.upper()}")
+        print(f"💬 Reason: {reason}")
+        if doctors:
+            print("👨‍⚕️ Available Doctors Found:")
+            for doc in doctors:
+                print(f"   - {doc['name']} at {doc['hospital']} ({', '.join(doc['available_days'])})")
+        else:
+            print("⚠️ No doctors found in that location/specialty combination.")
+        print("="*60 + "\n")
 
         # 5. Add to conversation log for observability (LLMOps compliance)
         if not isinstance(state.get("conversation_log"), list):
