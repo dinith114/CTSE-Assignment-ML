@@ -4,6 +4,7 @@ from typing import Dict, Any, TypedDict
 from langgraph.graph import StateGraph, END
 
 from app.agents.travel_risk_agent import TravelRiskAgent
+from app.agents.symptom_triage_agent import SymptomTriageAgent
 from app.logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -21,13 +22,17 @@ class EChannelState(TypedDict, total=False):
     risk_assessment: Dict[str, Any]
     conversation_log: list
     error: str
+    symptoms: list
+    urgency: str
+    red_flags: list
+    triage_result: Dict[str, Any]
 
 
 def symptom_triage_node(state: EChannelState) -> EChannelState:
     logger.info("Step 1: Symptom Triage Agent")
-    if not state.get("severity"):
-        state["severity"] = "high"
-    return state
+    
+    agent = SymptomTriageAgent()
+    return agent.process(state)
 
 
 def medical_routing_node(state: EChannelState) -> EChannelState:
