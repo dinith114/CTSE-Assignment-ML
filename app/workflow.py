@@ -46,6 +46,8 @@ def medical_routing_node(state: EChannelState) -> EChannelState:
         routing_input = {
             "triage": {
                 "symptoms": state.get("symptoms", []),  # safe fallback
+                "severity": state.get("severity", "medium"),
+                "red_flags": state.get("red_flags", []),
                 "location": state.get("patient_city", "Colombo")
             }
         }
