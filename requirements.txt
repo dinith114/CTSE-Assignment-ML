@@ -8,3 +8,5 @@ requests>=2.31.0
 
 # For full project (shared across team)
 # Ollama runtime is installed separately on the machine (CLI), not via pip.
+fastapi>=0.100.0
+uvicorn>=0.22.0
