@@ -64,7 +64,7 @@ class MedicalRoutingAgent:
                 cleaned_response = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', cleaned_response)
                 
                 try:
-                    result = json.loads(cleaned_response)
+                    result = json.loads(cleaned_response, strict=False)
                 except json.JSONDecodeError as decode_err:
                     raise ValueError(f"Extracted json was invalid. Error: {decode_err}. Extracted string: {cleaned_response}")
             else:
