@@ -88,8 +88,9 @@ class SymptomTriageAgent:
             
             if llm_response:
                 try:
-                    # Attempt to parse SLM JSON output
-                    llm_data = json.loads(llm_response[llm_response.find("{"):llm_response.rfind("}")+1])
+                    # Attempt to parse SLM JSON output, allowing unescaped control chars like newlines
+                    json_str = llm_response[llm_response.find("{"):llm_response.rfind("}")+1]
+                    llm_data = json.loads(json_str, strict=False)
                     if "triage_summary_note" in llm_data:
                         triage_result["triage_note"] = llm_data["triage_summary_note"]
                 except Exception as e:

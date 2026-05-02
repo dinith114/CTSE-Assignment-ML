@@ -18,4 +18,4 @@ if __name__ == "__main__":
     
     result = run_e_channeling_workflow(patient_input)
     
-    logger.info("✅ Workflow completed successfully")
+    logger.info("[SUCCESS] Workflow completed successfully")
