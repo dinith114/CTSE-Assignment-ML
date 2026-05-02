@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
+import re
 from app.tools.distance_calculator_tool import DistanceCalculatorTool
 from app.llm.ollama_client import run_ollama
 from app.logger_config import get_logger
@@ -116,6 +117,12 @@ class TravelRiskAgent:
                 "risk_assessment": risk_assessment
             })
             
+            # Print travel summary for immediate visibility
+            print("\n" + "="*60)
+            print("FINAL APPOINTMENT RECOMMENDATION")
+            print("="*60)
+            print(self.get_travel_summary(state))
+            
             logger.info(f"{self.agent_name}: Assessment complete - {risk_assessment['risk_level']}")
             return state
             
@@ -160,7 +167,7 @@ class TravelRiskAgent:
             logger.info("Local Ollama reasoning unavailable; continuing with rule-based output.")
             output = ""
 
-        clean_output = output.strip()
+        clean_output = self._sanitize_text(output)
         distance_km = float(travel_info.get("distance_km", 0) or 0)
         severity_lower = severity.lower()
 
@@ -194,6 +201,25 @@ class TravelRiskAgent:
                 return fallback
 
         return clean_output
+
+    def _sanitize_text(self, text: str) -> str:
+        """Remove ANSI/control characters that can leak from local CLI output."""
+        if not text:
+            return ""
+
+        # Remove ANSI escape sequences, e.g. "\x1b[3D\x1b[K".
+        no_ansi = re.sub(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "", text)
+        # Remove non-printable control chars except newline/tab for readability.
+        no_ctrl = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", "", no_ansi)
+
+        # Fix wrapped fragment duplicates from terminal-style rendering,
+        # e.g. "sho short" -> "short", "fo for" -> "for".
+        cleaned = re.sub(r"\b([A-Za-z]{2,4})\s+(\1[A-Za-z]+)\b", r"\2", no_ctrl)
+
+        # Normalize repeated whitespace while preserving line breaks.
+        cleaned = re.sub(r"[ \t]+", " ", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        return cleaned.strip()
     
     def _assess_risk(self, travel_info: Dict[str, Any], severity: str) -> Dict[str, Any]:
         """

@@ -1,78 +1,21 @@
 """
 Main entry point for Multi-Agent E-Channeling System
-Demonstrates full workflow with all 4 agents.
+Simple testing interface for the workflow.
 """
 
-from app.agents.travel_risk_agent import TravelRiskAgent
-from app.workflow import run_workflow
+from app.workflow import run_e_channeling_workflow
 from app.logger_config import get_logger
-import json
-import argparse
-import os
 
 logger = get_logger(__name__)
 
-
-def run_e_channeling_workflow(patient_input: dict, hospital_override: str = None, severity_override: str = None):
-    """
-    Simulate the complete multi-agent workflow.
-    In production, this would use LangGraph/CrewAI for orchestration.
-    """
-    # Initial state
-    state = {
-        "patient_text": patient_input.get("symptoms", ""),
-        "patient_city": patient_input.get("city", "Colombo, Sri Lanka"),
-        "patient_location": patient_input.get("city", "Colombo, Sri Lanka"),
-        "severity": None,  # To be set by Member 1
-        "specialist": None,  # To be set by Member 2
-        "hospital_city": None,  # To be set by Member 2
-        "appointment": None,  # To be set by Member 3
-        "travel_info": None,  # To be set by YOU (Member 4)
-    }
-    
-    # Inject CLI overrides into initial state before orchestration.
-    state["hospital_city"] = patient_input.get("hospital_city") or hospital_override
-    if severity_override:
-        state["severity"] = severity_override
-
-    # Run LangGraph workflow orchestration.
-    final_state = run_workflow(state)
-    
-    # Display results
-    print("\n" + "="*60)
-    print("FINAL APPOINTMENT RECOMMENDATION")
-    print("="*60)
-    travel_agent = TravelRiskAgent()
-    print(travel_agent.get_travel_summary(final_state))
-    
-    if final_state.get("risk_assessment", {}).get("requires_alternative"):
-        print("\n⚠️ ALTERNATIVE RECOMMENDATION: Consider local hospital or teleconsultation")
-    
-    return final_state
-
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run e-channeling workflow with custom inputs")
-    parser.add_argument("--patient-city", type=str, default="Kandy, Sri Lanka", help="Patient city/location")
-    parser.add_argument("--hospital-city", type=str, default=None, help="Hospital city/location")
-    parser.add_argument("--severity", type=str, default=None, choices=[None, "low", "medium", "high", "urgent"], help="Patient severity")
-    parser.add_argument("--symptoms", type=str, default="Chest pain and shortness of breath", help="Patient symptom text")
-
-    args = parser.parse_args()
-
-    # Build patient input from CLI args
-    patient = {
-        "symptoms": args.symptoms,
-        "city": args.patient_city,
-        "hospital_city": args.hospital_city
+    # Example: Test the workflow with sample patient data
+    patient_input = {
+        "symptoms": "Chest pain and shortness of breath",
+        "patient_city": "Sri Lanka Institute of Information Technology",
+        "hospital_city": "Durdans Hospital, Sri Lanka"
     }
-
-    result = run_e_channeling_workflow(patient, hospital_override=args.hospital_city, severity_override=args.severity)
-
-    # Save results for observability
-    out_path = "app/logs/system/last_run.json"
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, "w") as f:
-        json.dump(result, f, indent=2)
-
-    print(f"Results written to {out_path}")
+    
+    result = run_e_channeling_workflow(patient_input)
+    
+    logger.info("✅ Workflow completed successfully")
