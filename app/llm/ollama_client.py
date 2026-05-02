@@ -4,6 +4,7 @@ from typing import Optional
 import subprocess
 import shutil
 import os
+import logging
 
 
 def _resolve_ollama_executable() -> Optional[str]:
@@ -35,23 +36,57 @@ def run_ollama(prompt: str, model: str = "llama3.2:3b", timeout: int = 30) -> Op
     Returns:
         Model output text, or None if unavailable.
     """
+    logger = logging.getLogger(__name__)
     try:
         ollama_executable = _resolve_ollama_executable()
         if not ollama_executable:
+            logger.debug("Ollama executable not found on PATH or common locations.")
             return None
 
-        result = subprocess.run(
-            [ollama_executable, "run", model, prompt],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            check=False,
-        )
-        output = (result.stdout or "").strip()
-        if output:
-            return output
+        logger.debug(f"Using Ollama executable: {ollama_executable}")
+
+        # First call uses the requested timeout; second call gives model load/generation more time.
+        timeout_attempts = [timeout, max(timeout * 2, 60)]
+        for attempt_index, attempt_timeout in enumerate(timeout_attempts, start=1):
+            try:
+                result = subprocess.run(
+                    [ollama_executable, "run", model, prompt],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=attempt_timeout,
+                    check=False,
+                )
+
+                stdout = (result.stdout or "").strip()
+                stderr = (result.stderr or "").strip()
+
+                if result.returncode != 0:
+                    logger.warning(
+                        f"Ollama returned non-zero exit code on attempt {attempt_index}: {result.returncode}"
+                    )
+                    if stderr:
+                        logger.warning(f"Ollama stderr: {stderr}")
+
+                if stdout:
+                    logger.debug(f"Ollama returned stdout on attempt {attempt_index}")
+                    return stdout
+
+                if stderr:
+                    logger.debug(f"Ollama produced no stdout; stderr: {stderr}")
+                else:
+                    logger.debug("Ollama produced no output")
+                return None
+
+            except subprocess.TimeoutExpired:
+                logger.warning(
+                    f"Ollama timed out on attempt {attempt_index} after {attempt_timeout}s for model '{model}'"
+                )
+                if attempt_index == len(timeout_attempts):
+                    return None
+
         return None
-    except Exception:
+    except Exception as e:
+        logger.exception(f"Calling Ollama failed: {e}")
         return None

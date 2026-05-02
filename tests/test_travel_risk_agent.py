@@ -8,6 +8,7 @@ import sys
 import os
 import subprocess
 from unittest.mock import patch
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -51,6 +52,84 @@ class TestTravelRiskAgent(unittest.TestCase):
         self.assertIn("risk_assessment", result)
         self.assertIn("conversation_log", result)
         self.assertEqual(len(result["conversation_log"]), 1)
+
+    def test_agent_uses_original_places_without_ollama_extraction(self):
+        """Test that place names are passed through directly (Ollama place extraction disabled)."""
+        state = {
+            "patient_city": "Homagoma",
+            "hospital_city": "Asiri Surgcal",
+            "severity": "medium"
+        }
+
+        with patch("app.agents.travel_risk_agent.run_ollama", return_value=None), \
+             patch.object(self.agent.distance_tool, 'calculate_travel') as mock_calc:
+            mock_calc.return_value = {"distance_km": 12.3, "travel_time_hours": 0.2}
+
+            result = self.agent.process(state)
+
+        mock_calc.assert_called_once()
+        called_kwargs = mock_calc.call_args.kwargs
+        self.assertEqual(called_kwargs["patient_city"], "Homagoma")
+        self.assertEqual(called_kwargs["hospital_city"], "Asiri Surgcal")
+        self.assertEqual(result["travel_info"]["original_patient_city"], "Homagoma")
+        self.assertEqual(result["travel_info"]["original_hospital_city"], "Asiri Surgcal")
+        self.assertEqual(result["patient_city"], "Homagoma")
+        self.assertEqual(result["hospital_city"], "Asiri Surgcal")
+    
+    def test_agent_handles_institution_names(self):
+        """Test that agent correctly handles institution names like 'Sri Lanka Institute of Information Technology'."""
+        state = {
+            "patient_city": "Sri Lanka Institute of Information Technology",
+            "hospital_city": "Colombo",
+            "severity": "medium"
+        }
+
+        with patch("app.agents.travel_risk_agent.run_ollama", return_value=None), \
+             patch.object(self.agent.distance_tool, 'calculate_travel') as mock_calc:
+            mock_calc.return_value = {"distance_km": 25, "travel_time_hours": 0.5}
+
+            result = self.agent.process(state)
+
+        mock_calc.assert_called_once()
+        called_kwargs = mock_calc.call_args.kwargs
+        self.assertEqual(called_kwargs["patient_city"], "Sri Lanka Institute of Information Technology")
+        self.assertEqual(called_kwargs["hospital_city"], "Colombo")
+        self.assertEqual(result["travel_info"]["original_patient_city"], "Sri Lanka Institute of Information Technology")
+        self.assertEqual(result["patient_city"], "Sri Lanka Institute of Information Technology")
+
+    def test_agent_retries_with_nominatim_suggestions_when_geocode_fails(self):
+        """If Ollama normalization is unavailable, retry with Nominatim suggestions after geocode failure."""
+        state = {
+            "patient_city": "Homagoma",
+            "hospital_city": "Kolombuwa",
+            "severity": "medium"
+        }
+
+        with patch("app.agents.travel_risk_agent.run_ollama", return_value=None), \
+             patch.object(self.agent, '_nominatim_suggest') as mock_suggest, \
+             patch.object(self.agent.distance_tool, 'calculate_travel') as mock_calc:
+            mock_calc.side_effect = [
+                ValueError("Could not geocode hospital city: Kolombuwa"),
+                {"distance_km": 18.0, "travel_time_hours": 0.4}
+            ]
+
+            def suggest_side_effect(name):
+                mapping = {
+                    "Homagoma": "Homagama, Sri Lanka",
+                    "Kolombuwa": "Colombo, Sri Lanka",
+                }
+                return mapping.get(name)
+
+            mock_suggest.side_effect = suggest_side_effect
+
+            result = self.agent.process(state)
+
+        self.assertEqual(mock_calc.call_count, 2)
+        retry_kwargs = mock_calc.call_args.kwargs
+        self.assertEqual(retry_kwargs["patient_city"], "Homagama, Sri Lanka")
+        self.assertEqual(retry_kwargs["hospital_city"], "Colombo, Sri Lanka")
+        self.assertEqual(result["patient_city"], "Homagama, Sri Lanka")
+        self.assertEqual(result["hospital_city"], "Colombo, Sri Lanka")
     
     def test_risk_assessment_matrix(self):
         """Property test: Risk assessment follows defined matrix rules."""
@@ -71,6 +150,7 @@ class TestTravelRiskAgent(unittest.TestCase):
     def test_get_travel_summary_format(self):
         """Test summary generation for frontend display."""
         state = {
+            "severity": "low",
             "travel_info": {
                 "source_city": "Galle",
                 "destination_city": "Colombo",
@@ -88,7 +168,7 @@ class TestTravelRiskAgent(unittest.TestCase):
         summary = self.agent.get_travel_summary(state)
         self.assertIn("Galle", summary)
         self.assertIn("Colombo", summary)
-        self.assertIn("LOW", summary)
+        self.assertIn("low", summary)
     
     def test_observability_logging(self):
         """Test that agent logs all inputs and outputs for tracking."""
