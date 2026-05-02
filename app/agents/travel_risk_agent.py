@@ -9,8 +9,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing import Dict, Any, Optional
 from datetime import datetime
+import json
+import requests
 import logging
 import re
+import textwrap
 from app.tools.distance_calculator_tool import DistanceCalculatorTool
 from app.llm.ollama_client import run_ollama
 from app.logger_config import get_logger
@@ -23,10 +26,16 @@ class TravelRiskAgent:
     Agent responsible for assessing travel risks and providing route advice.
     
     Responsibilities:
-    1. Calculate travel distance and time between patient and hospital cities
-    2. Generate route advice based on distance
-    3. Raise warnings for urgent/high-severity patients with long travel times
-    4. Provide structured output for appointment coordinator
+    1. Calculate travel distance and time between patient and hospital locations (cities or institutions)
+    2. Normalize location names (handles city names like "Homagama" or institution names like "Sri Lanka Institute of Information Technology")
+    3. Generate route advice based on distance
+    4. Raise warnings for urgent/high-severity patients with long travel times
+    5. Provide structured output for appointment coordinator
+    
+    Note: patient_city and hospital_city can be either:
+    - City names (e.g., "Colombo", "Homagama")
+    - Institution/landmark names (e.g., "Sri Lanka Institute of Information Technology")
+    - Misspelled versions of the above (will be normalized via LLM + Nominatim fallback)
     
     System Prompt (embedded in agent logic):
     You are a Travel Risk Assessment Agent in a healthcare e-channeling system.
@@ -49,6 +58,7 @@ class TravelRiskAgent:
         self.agent_name = "TravelRiskAssessmentAgent"
         self.use_local_llm = os.getenv("USE_LOCAL_LLM", "true").lower() == "true"
         self.llm_model = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+        self.reasoning_timeout = int(os.getenv("OLLAMA_REASONING_TIMEOUT", "60"))
         
     def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -75,13 +85,57 @@ class TravelRiskAgent:
             return state
         
         try:
-            # Calculate travel information
-            travel_info = self.distance_tool.calculate_travel(
-                patient_city=patient_city,
-                hospital_city=hospital_city,
-                severity=severity,
-                travel_mode=state.get("travel_mode", "default")
-            )
+            # Place extraction/normalization via Ollama is intentionally disabled.
+            # Use user-provided places directly, then rely on geocoding fallback if needed.
+            normalized_patient_city = patient_city
+            normalized_hospital_city = hospital_city
+
+            state["patient_city"] = normalized_patient_city
+            state["hospital_city"] = normalized_hospital_city
+
+            # Calculate travel information. If geocoding fails, retry once with
+            # Nominatim suggestions (useful when Ollama is unavailable and input has typos).
+            travel_mode = state.get("travel_mode", "default")
+            try:
+                travel_info = self.distance_tool.calculate_travel(
+                    patient_city=normalized_patient_city,
+                    hospital_city=normalized_hospital_city,
+                    severity=severity,
+                    travel_mode=travel_mode
+                )
+            except ValueError as geocode_error:
+                logger.warning(
+                    f"{self.agent_name}: Initial geocoding failed ({geocode_error}). Trying Nominatim suggestion fallback."
+                )
+
+                try:
+                    fallback_patient = self._nominatim_suggest(normalized_patient_city) or normalized_patient_city
+                except Exception:
+                    fallback_patient = normalized_patient_city
+
+                try:
+                    fallback_hospital = self._nominatim_suggest(normalized_hospital_city) or normalized_hospital_city
+                except Exception:
+                    fallback_hospital = normalized_hospital_city
+
+                # Retry only if at least one location changed.
+                if (
+                    fallback_patient == normalized_patient_city
+                    and fallback_hospital == normalized_hospital_city
+                ):
+                    raise
+
+                normalized_patient_city = fallback_patient
+                normalized_hospital_city = fallback_hospital
+                state["patient_city"] = normalized_patient_city
+                state["hospital_city"] = normalized_hospital_city
+
+                travel_info = self.distance_tool.calculate_travel(
+                    patient_city=normalized_patient_city,
+                    hospital_city=normalized_hospital_city,
+                    severity=severity,
+                    travel_mode=travel_mode
+                )
             
             # Perform risk assessment
             risk_assessment = self._assess_risk(travel_info, severity)
@@ -89,8 +143,8 @@ class TravelRiskAgent:
             # Optional local LLM reasoning for explainability.
             if self.use_local_llm:
                 llm_reasoning = self._generate_llm_reasoning(
-                    patient_city=patient_city,
-                    hospital_city=hospital_city,
+                    patient_city=normalized_patient_city,
+                    hospital_city=normalized_hospital_city,
                     severity=severity,
                     travel_info=travel_info,
                     risk_assessment=risk_assessment,
@@ -98,7 +152,15 @@ class TravelRiskAgent:
                 if llm_reasoning:
                     risk_assessment["llm_reasoning"] = llm_reasoning
             
+            # Fallback recommendation if LLM unavailable
+            if "llm_reasoning" not in risk_assessment:
+                risk_assessment["llm_reasoning"] = risk_assessment.get("recommendation", "No recommendation available")
+            
             # Update state with results
+            travel_info["original_patient_city"] = patient_city
+            travel_info["original_hospital_city"] = hospital_city
+            travel_info["normalized_patient_city"] = normalized_patient_city
+            travel_info["normalized_hospital_city"] = normalized_hospital_city
             state["travel_info"] = travel_info
             state["risk_assessment"] = risk_assessment
             
@@ -129,8 +191,59 @@ class TravelRiskAgent:
         except Exception as e:
             logger.error(f"{self.agent_name}: Error processing travel assessment: {e}")
             state["error"] = str(e)
-            state["travel_info"] = {"error": str(e)}
+            # Provide fallback travel_info with error message but still include original locations
+            state["travel_info"] = {
+                "error": str(e),
+                "source_city": patient_city,
+                "destination_city": hospital_city,
+                "distance_km": None,
+                "travel_time_hours": None,
+                "travel_time_minutes": None,
+                "route_advice": "Unable to calculate travel details due to geocoding error.",
+                "warning_message": None
+            }
+            # Still provide fallback risk assessment
+            state["risk_assessment"] = {
+                "risk_level": severity.upper(),
+                "recommendation": "Unable to assess travel risk. Please check location names and try again.",
+                "llm_reasoning": "Unable to assess travel risk. Please check location names and try again.",
+                "requires_alternative": False
+            }
             return state
+
+    def _resolve_locations_from_llm(self, patient_city: str, hospital_city: str, severity: str) -> Dict[str, str]:
+        """
+        Legacy placeholder for place normalization.
+
+        Ollama-based place extraction is disabled; return original values unchanged.
+        """
+        return {
+            "patient_city": patient_city,
+            "hospital_city": hospital_city,
+        }
+
+    def _nominatim_suggest(self, name: str) -> Optional[str]:
+        """Query Nominatim for a best-match display name for a possibly-misspelled place.
+
+        Returns the `display_name` from the first match, or None if no match.
+        """
+        if not name:
+            return None
+
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": name, "format": "json", "limit": 1}
+        headers = {"User-Agent": "E-Channeling-System/1.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+        if data and isinstance(data, list) and len(data) > 0:
+            display = data[0].get("display_name")
+            if display:
+                # Keep display_name concise: prefer up to first 3 comma-separated parts
+                parts = [p.strip() for p in display.split(',')]
+                short = ', '.join(parts[:3])
+                return short
+        return None
 
     def _generate_llm_reasoning(
         self,
@@ -162,7 +275,11 @@ class TravelRiskAgent:
             f"Recommendation: {risk_assessment.get('recommendation')}"
         )
 
-        output = run_ollama(prompt=prompt, model=self.llm_model, timeout=30)
+        output = run_ollama(
+            prompt=prompt,
+            model=self.llm_model,
+            timeout=self.reasoning_timeout,
+        )
         if not output:
             logger.info("Local Ollama reasoning unavailable; continuing with rule-based output.")
             output = ""
@@ -220,6 +337,32 @@ class TravelRiskAgent:
         cleaned = re.sub(r"[ \t]+", " ", cleaned)
         cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
         return cleaned.strip()
+
+    def _extract_json_object(self, text: str) -> Optional[Dict[str, Any]]:
+        """Extract a JSON object from LLM output when it returns fenced or surrounding text."""
+        if not text:
+            return None
+
+        candidate = text.strip()
+        if candidate.startswith("```"):
+            candidate = re.sub(r"^```(?:json)?\s*", "", candidate, flags=re.IGNORECASE)
+            candidate = re.sub(r"\s*```$", "", candidate)
+
+        try:
+            parsed = json.loads(candidate)
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            pass
+
+        match = re.search(r"\{.*\}", candidate, flags=re.DOTALL)
+        if not match:
+            return None
+
+        try:
+            parsed = json.loads(match.group(0))
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            return None
     
     def _assess_risk(self, travel_info: Dict[str, Any], severity: str) -> Dict[str, Any]:
         """
@@ -278,32 +421,32 @@ class TravelRiskAgent:
         """
         travel_info = state.get("travel_info", {})
         risk = state.get("risk_assessment", {})
+        severity = state.get("severity", "Unknown")
         
-        if "error" in travel_info:
-            return f"❌ Travel assessment error: {travel_info['error']}"
+        # Format distance and time with fallback for None values
+        distance = travel_info.get('distance_km')
+        distance_str = f"{distance} km" if distance is not None else "Unable to calculate"
         
-        summary = f"""
+        time = travel_info.get('travel_time_hours')
+        time_str = f"{time} hours" if time is not None else "Unable to calculate"
+        
+        # Get recommendation with fallback
+        recommendation = risk.get('llm_reasoning') or risk.get('recommendation') or 'No recommendation available'
+        
+        summary = textwrap.dedent(f"""
         🚗 TRAVEL ASSESSMENT SUMMARY
         📍 From: {travel_info.get('source_city', 'Unknown')}
         🏥 To: {travel_info.get('destination_city', 'Unknown')}
-        📏 Distance: {travel_info.get('distance_km', 0)} km
-        ⏱️ Estimated travel time: {travel_info.get('travel_time_hours', 0)} hours
-        🚦 Risk Level: {risk.get('risk_level', 'Unknown')}
-        💡 Recommendation: {risk.get('recommendation', 'N/A')}
-        🗺️ Route Advice: {travel_info.get('route_advice', 'N/A')}
-        """
-
-        if risk.get("llm_reasoning"):
-            summary += f"\n🤖 LLM Reasoning: {risk['llm_reasoning']}"
+        📏 Distance: {distance_str}
+        ⏱️ Estimated travel time: {time_str}
+        🚦 Risk Level: {severity}
+        💡 Recommendation: {recommendation}
+        """).strip()
         
         if travel_info.get('warning_message'):
             summary += f"\n⚠️ {travel_info['warning_message']}"
         
+        if "error" in travel_info and travel_info['error']:
+            summary += f"\n❌ Error: {travel_info['error']}"
+        
         return summary
-
-
-# For integration with LangGraph/CrewAI workflows
-def create_travel_risk_node():
-    """Factory function to create travel risk agent node for workflow."""
-    agent = TravelRiskAgent()
-    return agent.process
