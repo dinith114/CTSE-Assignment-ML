@@ -1,0 +1,230 @@
+Technical Report: Travel Risk Assessment Component
+
+1. Problem Domain
+
+The travel risk component estimates whether a patient can safely travel from the patient location to the selected hospital and how that travel should be presented in the final appointment summary. In a healthcare e-channeling system, travel is not only a routing concern but also a patient safety concern. A long journey may be acceptable for a low-severity case, but it can be risky for high or urgent cases, especially when the patient may need immediate care.
+
+The travel-risk agent solves three practical problems:
+
+- It calculates travel distance and estimated travel time between the patient location and the hospital.
+- It evaluates travel risk based on the patient’s symptom severity and the travel burden.
+- It produces a human-readable recommendation for the summary page and backend workflow.
+
+The component must handle both simple city names and real-world location names such as hospitals, institutions, or landmarks. It must also remain robust when external services fail, especially local Ollama reasoning and geocoding APIs.
+
+2. System Architecture
+
+The overall system is a multi-agent e-channeling platform. Each agent focuses on one stage of the patient journey, and the shared state allows the output of one agent to become the input of the next. This design keeps the workflow modular, testable, and easier to maintain. The first agents identify urgency and specialty, while the later agents prepare appointment and travel details for the user-facing summary.
+
+Whole-system roles and responsibilities:
+
+- Symptom Triage Agent: reads symptoms and determines severity, urgency, and red flags.
+- Medical Routing Agent: maps the triage result to the most suitable medical specialty.
+- Appointment Coordinator Agent: finds available doctors or appointment options.
+- Travel Risk Assessment Agent: checks whether the selected hospital is practical and safe to reach.
+- Frontend Summary: presents the final end-to-end result to the user.
+
+Whole-system architecture diagram:
+
+```mermaid
+flowchart LR
+	A[Patient Inputs\nSymptoms, Patient City, Hospital City] --> B[Symptom Triage Agent]
+	B --> C[Medical Routing Agent]
+	C --> D[Appointment Coordinator Agent]
+	D --> E[Travel Risk Assessment Agent]
+	E --> F[Final Summary / Frontend]
+
+	B --> S[(Shared Workflow State)]
+	C --> S
+	D --> S
+	E --> S
+	S --> F
+```
+
+The travel-risk component is one agent in that overall workflow. In the full pipeline, the travel-risk agent runs after symptom triage, medical routing, and appointment coordination. Its job is to use the final patient and hospital locations, then assess travel feasibility.
+
+Travel-risk role in the workflow:
+
+- Input: patient_city, hospital_city, severity, and optional travel mode
+- Processing: geocode locations, calculate road distance and travel time, assess risk, generate recommendation
+- Output: travel_info and risk_assessment added to the shared workflow state
+
+The travel-risk agent is the final safety check before the result is shown to the user. It also helps the frontend display the travel distance, estimated travel time, risk level, and recommendation in the summary page.
+
+3. Agent Design
+
+The travel-risk agent is implemented in app/agents/travel_risk_agent.py. It combines deterministic logic with optional LLM-based explanation.
+
+Core responsibilities:
+
+- Validate that both patient and hospital locations are available.
+- Preserve user-entered location names.
+- Calculate travel distance and estimated time using the distance calculator tool.
+- Assess risk from severity and travel duration.
+- Generate a recommendation for the summary output, including practical travel options or vehicle types such as ambulance, taxi, car, bus, train, or teleconsultation when appropriate.
+- Log the input/output for traceability.
+
+Reasoning logic:
+
+The agent uses a simple, predictable risk matrix:
+
+- High or urgent severity with long travel time increases risk.
+- Medium or low severity with short travel time is usually lower risk.
+- Very long travel can trigger warnings or alternative recommendations.
+- The final risk level is deterministic so the UI and tests remain stable.
+
+Interaction strategy:
+
+The travel-risk agent is designed to be resilient rather than dependent on any single LLM response.
+
+- It first tries to calculate travel using the original location names.
+- If geocoding fails, it retries with Nominatim-based suggestions.
+- If local Ollama reasoning is unavailable, it falls back to rule-based recommendations that still mention a suitable travel option or vehicle type.
+- This ensures the workflow still completes even when the model is slow or offline.
+
+4. Custom Tools
+
+The travel-risk agent uses the distance calculation tool and optional Ollama client.
+
+Distance calculator tool:
+
+The tool handles:
+
+- Location geocoding using Nominatim
+- Road distance calculation using OSRM
+- Travel time estimation based on average speed
+- Warnings for risky travel combinations
+
+It supports both city names and institution names, which is important because users may enter a hospital name or a landmark rather than a city.
+
+Example usage:
+
+travel_info = self.distance_tool.calculate_travel(
+	patient_city="Sri Lanka Institute of Information Technology",
+	hospital_city="Durdans Hospital, Sri Lanka",
+	severity="high",
+	travel_mode="default"
+)
+
+This returns a structured dictionary including:
+
+- distance_km
+- travel_time_hours
+- route_advice
+- warning_message
+- source_city
+- destination_city
+
+The recommendation shown to the user is not a route-advice paragraph only; it is expected to indicate the safest practical travel option, often as a vehicle-type suggestion such as ambulance, car, taxi, bus, or train.
+
+LLM client:
+
+The Ollama client is used for optional reasoning. Timeout retry handling was added so slow local model startup does not immediately fail the workflow. This is important because local Ollama responses can be delayed on Windows or during first model use.
+
+5. State Management
+
+The travel-risk agent works with the shared workflow state used across the multi-agent system. The main rule is that the agent must only write allowed keys back to the shared state to avoid workflow errors.
+
+Travel-risk state inputs:
+
+- patient_city
+- hospital_city
+- severity
+- travel_mode
+
+Travel-risk state outputs:
+
+- travel_info
+- risk_assessment
+- conversation_log
+- error if a failure occurs
+
+Key state design decisions:
+
+- Original location names are preserved in travel_info.
+- Normalized location names are also stored inside travel_info when available.
+- The agent does not write arbitrary top-level keys that could break the workflow.
+- If travel calculation fails, fallback travel_info and risk_assessment are still created so the UI can render something useful.
+
+This state structure makes the component easier to debug and prevents null summary output.
+
+6. Evaluation Methodology
+
+The travel-risk component was evaluated using unit tests and runtime checks.
+
+Testing script:
+
+python -m unittest tests.test_travel_risk_agent -v
+
+The tests validate:
+
+- Missing input fields are detected.
+- Travel calculations update the state correctly.
+- Severity-based risk assessment follows the expected matrix.
+- Summary formatting is readable.
+- Conversation logging records the agent’s input/output.
+- Institution names and misspelled names are handled.
+- Geocoding fallback retry works when Ollama is unavailable.
+
+Reliability analysis:
+
+The main reliability concern in this component is dependency on external services:
+
+- Ollama may timeout or be unavailable.
+- Nominatim geocoding can fail for unsupported or unclear place names.
+- OSRM can fail or return no route.
+
+The current design handles this by:
+
+- Falling back to the original input when Ollama is unavailable.
+- Retrying geocoding with Nominatim suggestions when the first attempt fails.
+- Returning fallback recommendation text if LLM reasoning is unavailable, while still preserving a practical travel option or vehicle type.
+- Preserving partial output instead of failing the whole workflow.
+
+This makes the component robust enough for demo and assignment use.
+
+7. Contribution Evidence
+
+For the individual submission, the contribution is the travel-risk component.
+
+Agent developed:
+
+- Travel Risk Assessment Agent
+
+Tool integrated:
+
+- Distance calculator / geocoding tool
+
+Test cases contributed:
+
+- Travel risk state validation
+- Summary formatting
+- Risk matrix assertions
+- Institution-name handling
+- Geocoding fallback retry
+
+Challenges faced:
+
+- Ollama timeouts during local reasoning.
+- Incorrect place extraction caused geocoding failures.
+- Some inputs were institution names rather than city names.
+- Workflow state had to stay within allowed keys to avoid update errors.
+
+How these were solved:
+
+- Added retries and fallback behavior for Ollama.
+- Removed Ollama-based place extraction from travel-risk flow.
+- Preserved original user-entered locations and used geocoding fallback only when needed.
+- Kept travel outputs deterministic and testable.
+
+8. Repository Link
+
+GitHub repository link: replace this with your actual repo URL.
+
+Example format:
+
+https://github.com/<your-username>/<your-repository>
+
+9. Short Conclusion
+
+The travel-risk component adds the final safety layer in the e-channeling workflow. It translates patient severity and destination distance into a practical travel recommendation, while staying robust against missing model responses and geocoding failures. The design favors deterministic risk calculation, clear state updates, and graceful fallback behavior so the user always gets a usable summary.
