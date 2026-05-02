@@ -286,7 +286,7 @@ export default function SummaryPage() {
               </div>
             </InfoCard>
 
-            {/* Travel Risk Card - PRESERVING ALL ORIGINAL FIELDS WITHOUT ADDITIONS */}
+            {/* Travel Risk Card - PRESERVING ALL ORIGINAL FIELDS WITHOUT ADDITIONS ()*/}
             <InfoCard 
               title="Travel Risk" 
               icon="✈️" 
