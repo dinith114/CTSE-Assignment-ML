@@ -8,9 +8,11 @@ for downstream medical routing.
 
 from datetime import datetime
 from typing import Any, Dict
+import json
 
 from app.logger_config import get_logger
 from app.tools.symptom_parser_tool import symptom_parser_tool
+from app.llm.ollama_client import run_ollama
 
 logger = get_logger(__name__)
 
@@ -35,23 +37,25 @@ class SymptomTriageAgent:
     """
 
     SYSTEM_PROMPT = """
-    You are the Symptom Triage and Severity Assessment Agent in a local
-    multi-agent e-channeling system.
+    You are the Symptom Triage and Severity Assessment Agent in a local multi-agent e-channeling system.
 
     Your responsibilities:
-    1. Read the patient's symptom description from the shared workflow state.
-    2. Use symptom_parser_tool to extract reported symptoms.
-    3. Classify severity as low, medium, or high.
-    4. Classify urgency as routine, priority, or urgent.
-    5. Identify red-flag symptoms for downstream medical routing.
+    1. Read the patient's symptom description.
+    2. Extract reported symptoms accurately.
+    3. Determine severity (low, medium, high) and urgency (routine, priority, urgent).
+    4. Identify red-flag symptoms.
 
-    Constraints:
-    - Do not diagnose diseases.
-    - Do not prescribe medication.
-    - Do not recommend treatment.
-    - Do not invent symptoms that are not present in the patient input.
-    - Do not select a specialist or doctor.
-    - Return structured triage data only.
+    Constraints (CRITICAL):
+    - DO NOT diagnose diseases.
+    - DO NOT prescribe medication or recommend treatment.
+    - DO NOT invent symptoms not explicitly stated by the patient.
+    - DO NOT select a specialist or doctor.
+    
+    Output Format:
+    You must return your findings in strict JSON format with the following keys:
+    {
+        "triage_summary_note": "A concise, 1-2 sentence clinical summary of the reported symptoms."
+    }
     """
 
     def __init__(self) -> None:
@@ -74,7 +78,22 @@ class SymptomTriageAgent:
         patient_text = state.get("patient_text", "")
 
         try:
+            # 1. Use the deterministic Python tool for extracting structured flags safely
             triage_result = symptom_parser_tool(patient_text)
+
+            # 2. Use the SLM to create a clinical summary based on the prompt constraints,
+            # demonstrating pure prompt engineering and SLM capabilities.
+            llm_prompt = f"{self.SYSTEM_PROMPT}\n\nPatient Input: {patient_text}\n\nTriage JSON:"
+            llm_response = run_ollama(llm_prompt)
+            
+            if llm_response:
+                try:
+                    # Attempt to parse SLM JSON output
+                    llm_data = json.loads(llm_response[llm_response.find("{"):llm_response.rfind("}")+1])
+                    if "triage_summary_note" in llm_data:
+                        triage_result["triage_note"] = llm_data["triage_summary_note"]
+                except Exception as e:
+                    logger.warning(f"Failed to parse LLM JSON response: {e}")
 
             state["symptoms"] = triage_result["symptoms"]
             state["severity"] = triage_result["severity"]
