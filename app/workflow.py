@@ -27,6 +27,8 @@ class EChannelState(TypedDict, total=False):
     urgency: str
     red_flags: list
     triage_result: Dict[str, Any]
+    doctors: list
+    routing_reason: str
 
 
 def symptom_triage_node(state: EChannelState) -> EChannelState:
@@ -58,7 +60,9 @@ def medical_routing_node(state: EChannelState) -> EChannelState:
 
         # ✅ KEEP EXISTING FIELDS (important for other members)
         state["specialist"] = routing_data.get("primary_specialty", "General Physician")
-        state["hospital_city"] = state.get("patient_city", "Colombo")
+        # ✅ Preserve hospital_city from initial state (don't overwrite)
+        if not state.get("hospital_city"):
+            state["hospital_city"] = state.get("patient_city", "Colombo")
 
         # ✅ ADD EXTRA DATA (safe extension)
         state["doctors"] = routing_data.get("doctors", [])
@@ -100,5 +104,45 @@ def build_workflow():
 
 
 def run_workflow(initial_state: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute the compiled workflow with the given initial state."""
     app = build_workflow()
     return app.invoke(initial_state)
+
+
+def create_initial_state(patient_input: dict) -> EChannelState:
+    """
+    Initialize workflow state from patient input dictionary.
+    
+    Args:
+        patient_input: Dict with keys: symptoms, patient_city, hospital_city
+    
+    Returns:
+        EChannelState ready for workflow execution
+    """
+    return {
+        "patient_text": patient_input.get("symptoms", ""),
+        "patient_city": patient_input.get("patient_city", "Colombo, Sri Lanka"),
+        "patient_location": patient_input.get("patient_city", "Colombo, Sri Lanka"),
+        "severity": None,
+        "specialist": None,
+        "hospital_city": patient_input.get("hospital_city"),
+        "appointment": None,
+        "travel_info": None,
+    }
+
+
+def run_e_channeling_workflow(patient_input: dict) -> Dict[str, Any]:
+    """
+    Run the complete multi-agent e-channeling workflow.
+    
+    Args:
+        patient_input: Dict with keys: symptoms, patient_city (optional), hospital_city (optional)
+    
+    Returns:
+        Final workflow state with results from all agents
+    """
+    initial_state = create_initial_state(patient_input)
+    final_state = run_workflow(initial_state)
+    
+    # Return complete state
+    return final_state
