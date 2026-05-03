@@ -415,7 +415,7 @@ The project employs a **unified testing harness** (`tests/` directory) with each
 |-----------|-------|------------------|
 | `test_symptom_triage.py` | 3 tests | Tool extracts correct symptoms; agent sets severity; conversation log created |
 | `test_medical_routing.py` | 2 tests | Tool finds hospitals by specialty; agent maps categories to specialists |
-| `test_schedule_optimizer.py` | 9 tests | Slot filtering; urgency scoring; city fallback; alternatives; state validation; error handling |
+| `test_schedule_optimizer.py` | 15 tests + LLM-as-Judge | Slot filtering, urgency scoring, property-based invariants (e.g. `booking_number == booked + 1`), LLM-as-a-Judge evaluation of clinical recommendation reasonableness |
 | `test_travel_risk_agent.py` | 11 tests + LLM-as-Judge | Haversine accuracy; travel time estimation; warning generation; API mocking; risk matrix validation; observability logging |
 
 ### 7.2 Testing Techniques Used
@@ -472,7 +472,7 @@ python tests/test_travel_risk_agent.py
 - **Tool Implemented:** `ScheduleOptimizerTool` — Multi-criteria slot scoring (availability ratio + doctor rating) with severity-adaptive weighting. Includes `_estimate_consultation_time()` method for queue-based time prediction.
 - **Frontend Contribution:** Added the Appointment Coordinator card to `SummaryPage.jsx` with a booking details panel (2×2 grid showing booking #, estimated time, queue, seats) and an expandable alternatives accordion with full doctor details per alternative.
 - **Data:** Expanded `schedules.json` to 7 hospitals, 21 doctors across 8 specialties (Cardiology, Neurology, Orthopedics, Dermatology, Pulmonology, General Medicine, Gastroenterology, Ophthalmology).
-- **Tests Written:** 9 test cases in `test_schedule_optimizer.py` covering slot filtering, urgency scoring, city fallback, alternatives, state validation, and error handling.
+- **Tests Written:** 15 test cases in `test_schedule_optimizer.py` covering slot filtering, urgency scoring, city fallback, state validation, and error handling. **Advanced Testing**: Implemented 6 **Property-Based Tests** to enforce mathematical invariants (e.g., `booking_number == booked + 1`) and a robust **LLM-as-a-Judge** script using Ollama to validate the clinical reasonableness of recommendations.
 - **Challenges Faced:** 
   1. Designing a fair scoring algorithm that balances urgency with quality — solved by using different weight distributions (70/30 for urgent, 60/40 for regular).
   2. Estimating consultation time from queue position — solved by calculating `start_time + (patients_before × 15 min)`.

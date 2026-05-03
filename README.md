@@ -371,6 +371,7 @@ FINAL APPOINTMENT RECOMMENDATION
 - City fallback — searches all cities if none found in requested city
 - Graceful LLM fallback — works fully without Ollama
 - Web UI card with booking details panel and expandable alternatives accordion
+- **Advanced Testing**: 15 test cases including 6 Property-Based invariants and an Ollama-powered LLM-as-a-Judge script
 
 ---
 
