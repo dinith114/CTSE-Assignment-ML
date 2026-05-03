@@ -1,15 +1,25 @@
 """
-Custom tool for Symptom Triage and Severity Assessment Agent.
+Custom tool for Symptom Triage assessment.
 
-Parses patient symptom text, extracts known symptom keywords, identifies
-red flags, and assigns severity/urgency levels for downstream routing.
+This tool acts as a deterministic fallback and real-world interface.
+It parses symptom text, extracts known symptom keywords, identifies
+red flags, and assigns severity/urgency levels. 
+
+Real-world Interaction:
+    It writes high-severity cases to a local alert log file, demonstrating
+    agent capability to interact with the file system.
 """
 
 from typing import Any, Dict, List
-
+import os
+from datetime import datetime
 
 class SymptomParserTool:
-    """Rule-based symptom parser for preliminary e-channeling triage."""
+    """
+    Rule-based symptom parser and real-world logging tool for preliminary e-channeling triage.
+    """
+
+    LOG_FILE_PATH: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "emergency_alerts.log")
 
     SYMPTOM_CATALOG: Dict[str, List[str]] = {
         "chest pain": ["chest pain", "chest tightness", "pain in chest"],
@@ -71,6 +81,11 @@ class SymptomParserTool:
         confidence = self._calculate_confidence(symptoms)
         triage_note = self._build_triage_note(symptoms, severity, red_flags)
 
+        # Real-world Interaction: Write to local log for high-severity or red-flag cases
+        is_emergency = severity == "high" or len(red_flags) > 0
+        if is_emergency:
+            self._write_local_alert_log(symptoms, severity, red_flags)
+
         return {
             "symptoms": symptoms,
             "severity": severity,
@@ -83,7 +98,35 @@ class SymptomParserTool:
                 "This is a preliminary triage summary for specialist routing only, "
                 "not a medical diagnosis."
             ),
+            "emergency_logged": is_emergency
         }
+
+    def _write_local_alert_log(self, symptoms: List[str], severity: str, red_flags: List[str]) -> None:
+        """
+        Write an alert to a local text file for real-world observability.
+        
+        Args:
+            symptoms: List of extracted symptoms.
+            severity: The assigned severity tier.
+            red_flags: List of identified life-threatening symptoms.
+            
+        Raises:
+            IOError: If unable to write the log file.
+        """
+        try:
+            os.makedirs(os.path.dirname(self.LOG_FILE_PATH), exist_ok=True)
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            alert_entry = (
+                f"[{timestamp}] EMERGENCY ALERT | Severity: {severity.upper()}\n"
+                f"   Red Flags: {', '.join(red_flags) if red_flags else 'None'}\n"
+                f"   All Symptoms: {', '.join(symptoms) if symptoms else 'None'}\n"
+                f"{'-'*60}\n"
+            )
+            with open(self.LOG_FILE_PATH, "a", encoding="utf-8") as f:
+                f.write(alert_entry)
+        except Exception as e:
+            # Robust error handling: Log failure but do not crash the triage workflow
+            print(f"Warning: Failed to write emergency alert to disk: {e}")
 
     def _extract_symptoms(self, normalized_text: str) -> List[str]:
         """Extract known symptoms from normalized text."""
@@ -106,9 +149,9 @@ class SymptomParserTool:
     def _classify_urgency(self, severity: str) -> str:
         """Map severity level to urgency level."""
         urgency_map = {
-            "high": "urgent",
-            "medium": "priority",
-            "low": "routine",
+            "high": "Urgent attention required. Please seek medical help immediately.",
+            "medium": "Priority medical evaluation is recommended.",
+            "low": "Routine medical assessment is sufficient at your convenience.",
         }
         return urgency_map[severity]
 

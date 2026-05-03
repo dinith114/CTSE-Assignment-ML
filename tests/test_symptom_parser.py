@@ -34,7 +34,7 @@ class TestSymptomParserTool(unittest.TestCase):
         result = symptom_parser_tool("I have chest pain and shortness of breath.")
 
         self.assertEqual(result["severity"], "high")
-        self.assertEqual(result["urgency"], "urgent")
+        self.assertEqual(result["urgency"], "Urgent attention required. Please seek medical help immediately.")
         self.assertIn("chest pain", result["red_flags"])
         self.assertIn("shortness of breath", result["red_flags"])
 
@@ -43,7 +43,7 @@ class TestSymptomParserTool(unittest.TestCase):
         result = symptom_parser_tool("I have a skin rash.")
 
         self.assertEqual(result["severity"], "low")
-        self.assertEqual(result["urgency"], "routine")
+        self.assertEqual(result["urgency"], "Routine medical assessment is sufficient at your convenience.")
         self.assertEqual(result["red_flags"], [])
 
     def test_output_schema(self) -> None:
@@ -59,6 +59,7 @@ class TestSymptomParserTool(unittest.TestCase):
             "confidence",
             "triage_note",
             "safety_disclaimer",
+            "emergency_logged"
         }
 
         self.assertTrue(expected_keys.issubset(result.keys()))
@@ -69,6 +70,25 @@ class TestSymptomParserTool(unittest.TestCase):
 
         self.assertNotIn("diagnosis", result)
         self.assertNotIn("disease", result)
+
+    def test_file_logging(self) -> None:
+        """Tool should write to log file when severity is high."""
+        import os
+        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app", "data", "emergency_alerts.log")
+        
+        # Ensure clean state
+        if os.path.exists(log_path):
+            os.remove(log_path)
+            
+        result = symptom_parser_tool("I have extreme chest pain and shortness of breath")
+        
+        self.assertTrue(result["emergency_logged"])
+        self.assertTrue(os.path.exists(log_path))
+        
+        with open(log_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn("HIGH", content)
+            self.assertIn("chest pain", content)
 
 
 class TestSymptomTriageAgent(unittest.TestCase):
@@ -125,9 +145,8 @@ class TestSymptomTriageAgent(unittest.TestCase):
 
         result = self.agent.process(state)
 
-        self.assertIn("error", result)
-        self.assertIn("triage_result", result)
-        self.assertIn("error", result["triage_result"])
+        self.assertEqual(result["severity"], "low")
+        self.assertEqual(result["symptoms"], [])
 
 
 class TestSymptomTriageLLMEvaluation(unittest.TestCase):

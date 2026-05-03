@@ -29,6 +29,7 @@ class EChannelState(TypedDict, total=False):
     triage_result: Dict[str, Any]
     doctors: list
     routing_reason: str
+    alternative_specialists: list
 
 
 def symptom_triage_node(state: EChannelState) -> EChannelState:
@@ -50,7 +51,8 @@ def medical_routing_node(state: EChannelState) -> EChannelState:
                 "symptoms": state.get("symptoms", []),  # safe fallback
                 "severity": state.get("severity", "medium"),
                 "red_flags": state.get("red_flags", []),
-                "location": state.get("patient_city", "Colombo")
+                "location": state.get("patient_city", "Colombo"),
+                "preferred_hospital": state.get("hospital_city", "")
             }
         }
 
@@ -67,6 +69,7 @@ def medical_routing_node(state: EChannelState) -> EChannelState:
         # ✅ ADD EXTRA DATA (safe extension)
         state["doctors"] = routing_data.get("doctors", [])
         state["routing_reason"] = routing_data.get("reason", "")
+        state["alternative_specialists"] = routing_data.get("alternative_specialists", [])
 
         return state
 

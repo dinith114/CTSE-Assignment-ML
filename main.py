@@ -3,6 +3,7 @@ Main entry point for Multi-Agent E-Channeling System
 Demonstrates full workflow with all 4 agents.
 """
 
+import argparse
 from app.workflow import run_e_channeling_workflow
 from app.logger_config import get_logger
 import json
@@ -128,10 +129,11 @@ def display_results(final_state):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run e-channeling workflow with custom inputs")
-    parser.add_argument("--patient-city", type=str, default="Kandy, Sri Lanka", help="Patient city/location")
-    parser.add_argument("--hospital-city", type=str, default=None, help="Hospital city/location")
+    parser = argparse.ArgumentParser(description="Test Medical MAS")
+    parser.add_argument("--patient-city", type=str, default="Sri Lanka Institute of Information Technology", help="Patient city/location")
+    parser.add_argument("--hospital-city", type=str, default="Durdans Hospital, Sri Lanka", help="Hospital city/location")
     parser.add_argument("--symptoms", type=str, default="Chest pain and shortness of breath", help="Patient symptom text")
+    parser.add_argument("--severity", type=str, default="")
 
     args = parser.parse_args()
 
