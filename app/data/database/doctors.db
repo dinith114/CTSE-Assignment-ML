@@ -3,6 +3,8 @@ import sqlite3
 conn = sqlite3.connect("app/data/doctors.db")
 cursor = conn.cursor()
 
+cursor.execute("DROP TABLE IF EXISTS doctors")
+
 cursor.execute("""
 CREATE TABLE doctors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +22,20 @@ VALUES
 ('Dr. Silva', 'cardiologist', 'Asiri Hospital', 'Colombo', 'Mon,Wed'),
 ('Dr. Perera', 'dermatologist', 'Nawaloka', 'Colombo', 'Tue,Thu'),
 ('Dr. Fernando', 'neurologist', 'Lanka Hospital', 'Colombo', 'Fri'),
-('Dr. Jayasuriya', 'general physician', 'Durdans', 'Colombo', 'Mon,Tue,Wed')
+('Dr. Jayasuriya', 'General Physician', 'Durdans', 'Colombo', 'Mon,Tue,Wed'),
+('Dr. Mendis', 'orthopedist', 'Asiri Surgical', 'Colombo', 'Thu,Sat'),
+('Dr. Gunawardena', 'pediatrician', 'Nawaloka', 'Colombo', 'Tue,Wed,Fri'),
+('Dr. Rajapakse', 'psychiatrist', 'Lanka Hospital', 'Colombo', 'Mon,Thu'),
+('Dr. Wijesinghe', 'ent specialist', 'Durdans', 'Colombo', 'Wed,Sat'),
+('Dr. De Silva', 'gastroenterologist', 'Asiri Hospital', 'Colombo', 'Tue,Fri'),
+('Dr. Peiris', 'cardiologist', 'Nawaloka', 'Kandy', 'Mon,Thu'),
+('Dr. Samarasinghe', 'General Physician', 'Lanka Hospital', 'Galle', 'Wed,Fri'),
+('Dr. Nayana Perera', 'dermatologist', 'Medihelp Hospital', 'Piliyandala', 'Fri'),
+('Dr. Nayana Perera', 'dermatologist', 'Medihelp Hospital', 'Homagama', 'Wed'),
+('Dr. Nayana Perera', 'dermatologist', 'Lanka Hospital', 'Piliyandala', 'Sat'),
+('Dr. Fernando', 'Neurologist', 'Asiri Surgical', 'Colombo', 'Sat'),
+('Dr. Fernando', 'Neurologist', 'Asia Hospital', 'Maharagama', 'Mon'),
+('Dr. Saman Fernando', 'Neurologist', 'Lanka Hospital', 'Colombo', 'Fri')
 """)
 
 conn.commit()

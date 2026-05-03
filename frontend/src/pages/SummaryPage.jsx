@@ -277,12 +277,30 @@ export default function SummaryPage() {
             >
               <div className="space-y-3">
                 <KV label="Specialist" value={state.specialist} icon="👨‍⚕️" />
+                <KV label="Alternative Specialists" value={(state.alternative_specialists || state.routing?.alternative_specialists || []).join(', ') || 'None'} icon="🔄" />
                 <KV label="Routing Reason" value={state.routing_reason || state.routing?.reason} icon="🎯" />
-                <KV 
-                  label="Doctors" 
-                  value={(state.doctors || []).length ? JSON.stringify(state.doctors, null, 2) : 'No doctors found'} 
-                  icon="👩‍⚕️" 
-                />
+                <div className="rounded-xl bg-gradient-to-br from-slate-50 to-white p-3 border border-slate-100 hover:border-cyan-200 hover:shadow-md transition-all duration-200 group">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm group-hover:scale-110 transition-transform">👩‍⚕️</span>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Doctors</p>
+                  </div>
+                  {state.doctors && state.doctors.length > 0 ? (
+                    <div className="space-y-3">
+                      {state.doctors.map((doc, idx) => (
+                        <div key={idx} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                          <h4 className="font-semibold text-slate-800">{doc.name}</h4>
+                          <div className="mt-2 text-sm text-slate-600 space-y-1">
+                            <p>🩺 <span className="capitalize">{doc.specialty}</span></p>
+                            <p>🏥 {doc.hospital} ({doc.location})</p>
+                            <p>📅 {Array.isArray(doc.available_days) ? doc.available_days.join(', ') : doc.available_days}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-800 font-medium">No doctors found</p>
+                  )}
+                </div>
               </div>
             </InfoCard>
 

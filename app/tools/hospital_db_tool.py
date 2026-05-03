@@ -3,17 +3,23 @@ from typing import List, Dict
 
 DB_PATH = "app/data/doctors.db"
 
-def hospital_db_tool(specialty: str, location: str) -> List[Dict]:
+def hospital_db_tool(specialty: str, location: str, hospital: str = "") -> List[Dict]:
     """
-    Fetch doctors based on specialty and location.
+    Fetch doctors based on specialty and location, and optionally hospital.
 
     Args:
         specialty (str): medical specialty
         location (str): city/hospital location
+        hospital (str, optional): preferred hospital
 
     Returns:
         List of doctors
     """
+
+    # Handle None values to prevent .lower() crashes
+    specialty = specialty or ""
+    location = location or ""
+    hospital = hospital or ""
 
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -24,9 +30,10 @@ def hospital_db_tool(specialty: str, location: str) -> List[Dict]:
         FROM doctors
         WHERE LOWER(specialty) LIKE ?
         AND LOWER(location) LIKE ?
+        AND LOWER(hospital) LIKE ?
         """
 
-        cursor.execute(query, (f"%{specialty.lower()}%", f"%{location.lower()}%"))
+        cursor.execute(query, (f"%{specialty.lower()}%", f"%{location.lower()}%", f"%{hospital.lower()}%"))
 
         rows = cursor.fetchall()
 
