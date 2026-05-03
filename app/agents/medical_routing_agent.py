@@ -93,22 +93,51 @@ class MedicalRoutingAgent:
         severity = triage_data.get("severity", "medium")
         red_flags = triage_data.get("red_flags", [])
         location = triage_data.get("location", "Colombo")
+        preferred_hospital = triage_data.get("preferred_hospital", "")
 
         # 2. Determine appropriate specialist via LLM
         primary, alternatives, reason = self._determine_specialist_via_llm(symptoms, severity, red_flags)
 
         # 3. Query the local doctor database using the custom tool
         try:
-            doctors = hospital_db_tool(primary, location)
+            # First, try to find the primary specialist in the user's location AND preferred hospital
+            doctors = hospital_db_tool(primary, location, preferred_hospital)
             
-            # If no doctors found, try finding alternatives automatically (handling edge case)
-            if not doctors and alternatives:
-                 logger.info(f"{self.agent_name}: No {primary} found. Trying alternative {alternatives[0]}.")
-                 doctors = hospital_db_tool(alternatives[0], location)
+            # If no primary specialist found in the exact location and hospital
+            if not doctors:
+                 if preferred_hospital:
+                     logger.info(f"{self.agent_name}: No {primary} found at {preferred_hospital} in {location}. Broadening to any hospital.")
+                     reason += f" (Note: No '{primary}' found at {preferred_hospital}, showing all hospitals)."
+                     # Try searching the same city but without restricting the hospital
+                     doctors = hospital_db_tool(primary, location, "")
+
+            # If STILL no doctors found in the location/city, try alternatives in the SAME location
+            if not doctors:
+                 logger.info(f"{self.agent_name}: No {primary} found in {location}.")
+                 
+                 # Try finding alternatives in the SAME location first
+                 if alternatives:
+                     logger.info(f"{self.agent_name}: Trying alternative {alternatives[0]} in {location}.")
+                     doctors = hospital_db_tool(alternatives[0], location, "")
+                     if doctors:
+                         primary = alternatives[0] # Swap the primary if we found an alternative
+                         reason += f" (Note: Defaulted to alternative '{primary}' because the original primary was unavailable in {location})."
+
+            # If STILL no doctors found, broaden the search to ANY location
+            if not doctors:
+                 logger.info(f"{self.agent_name}: Broadening search to ALL locations for {primary}.")
+                 # Passing empty string to location will match LIKE '%%' which returns all locations
+                 doctors = hospital_db_tool(primary, "", "")
+                 
                  if doctors:
-                     primary = alternatives[0] # Swap the primary if we found an alternative
-                     reason += f" (Note: Defaulted to alternative '{primary}' because the original primary was unavailable in {location})."
-                     
+                     reason += f" (Note: No '{primary}' found in {location}, but found available specialists in other cities)."
+                 elif alternatives:
+                     # Broaden search for alternative in ANY location
+                     doctors = hospital_db_tool(alternatives[0], "")
+                     if doctors:
+                         primary = alternatives[0]
+                         reason += f" (Note: No doctors found in {location}. Broadened search found alternative '{primary}' in other cities)."
+
         except Exception as e:
             logger.error(f"{self.agent_name}: Error querying hospital database: {e}")
             doctors = []
@@ -117,7 +146,7 @@ class MedicalRoutingAgent:
         # 4. Update Global State
         routing_result = {
             "primary_specialty": primary,
-            "alternative_specialties": alternatives,
+            "alternative_specialists": alternatives,
             "doctors": doctors,
             "reason": reason
         }
