@@ -26,7 +26,7 @@ def _resolve_ollama_executable() -> Optional[str]:
 
 def run_ollama(prompt: str, model: str = "llama3.2:3b", timeout: int = 30) -> Optional[str]:
     """
-    Query a locally running Ollama model.
+    Query a locally running Ollama model via HTTP API to avoid terminal escape codes.
 
     Args:
         prompt: Prompt text to send.
@@ -36,7 +36,25 @@ def run_ollama(prompt: str, model: str = "llama3.2:3b", timeout: int = 30) -> Op
     Returns:
         Model output text, or None if unavailable.
     """
+    import logging
     logger = logging.getLogger(__name__)
+    
+    try:
+        import requests
+        url = "http://localhost:11434/api/generate"
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False
+        }
+        
+        response = requests.post(url, json=payload, timeout=timeout)
+        if response.status_code == 200:
+            return response.json().get("response", "").strip()
+            
+    except requests.exceptions.RequestException:
+        logger.debug("Failed requesting Ollama via REST API. Falling back to subprocess...")
+        
     try:
         ollama_executable = _resolve_ollama_executable()
         if not ollama_executable:
