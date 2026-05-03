@@ -271,20 +271,34 @@ FINAL APPOINTMENT RECOMMENDATION
   "hospital_city": "Colombo, Sri Lanka",
   "symptoms": ["chest pain", "shortness of breath"],
   "red_flags": ["chest pain", "shortness of breath"],
-  "doctors": [
-    {
-      "name": "Dr. Smith",
-      "specialty": "Cardiologist",
-      "hospital": "National Hospital",
-      "available": true
-    }
-  ],
-  "distance_km": 15.3,
-  "travel_time_hours": 0.3,
+  "appointment": {
+    "doctor_name": "Dr. Ruwan Perera",
+    "qualifications": "MBBS, MD (Cardiology), FRCP",
+    "hospital_name": "Nawaloka Hospital",
+    "hospital_city": "Colombo, Sri Lanka",
+    "day": "Monday",
+    "time_slot": "09:00 - 13:00",
+    "doctor_rating": 4.8,
+    "consultation_fee": 3500,
+    "booking_number": 3,
+    "estimated_time": "09:30",
+    "booked": 2,
+    "available": 8,
+    "max_patients": 10,
+    "urgency_score": 0.85,
+    "llm_reasoning": "This slot was recommended because...",
+    "alternatives": [{"doctor_name": "...", "...": "..."}]
+  },
+  "travel_info": {
+    "distance_km": 15.3,
+    "travel_time_hours": 0.3,
+    "source_city": "Colombo, Sri Lanka",
+    "destination_city": "Colombo, Sri Lanka"
+  },
   "risk_assessment": {
     "risk_level": "MEDIUM",
     "recommendation": "Proceed with caution",
-    "travel_advice": "Short distance. Car or bus recommended."
+    "llm_reasoning": "Short distance. Car or bus recommended."
   }
 }
 ```
@@ -328,19 +342,35 @@ FINAL APPOINTMENT RECOMMENDATION
 ---
 
 ### Agent 3: Appointment Coordinator Agent
-**Purpose:** Coordinate available appointment slots
+**Purpose:** Find, rank, and recommend optimal appointment slots with full booking details
 
 **Input:**
-- Specialist type
-- Hospital
-- Patient availability
+- Specialist type (from Agent 2)
+- Hospital city (from Agent 2)
+- Severity level (from Agent 1)
 
 **Output:**
-- Available time slots
-- Appointment confirmation
-- Doctor assignment
+- 🏥 Recommended doctor with qualifications, hospital, day/time, rating, fee
+- 🎫 **Booking number** (queue position, e.g., #9)
+- ⏰ **Estimated consultation time** (calculated from queue × 15 min avg)
+- 👥 **Queue size** (patients before you)
+- 💺 **Seat availability** (remaining / total capacity)
+- 📋 **Up to 2 alternatives** with full details (expandable in Web UI)
+- 🤖 **LLM reasoning** explaining why this slot was recommended
 
-**Data Source:** schedules.json (doctor schedules)
+**Scoring Algorithm:**
+| Severity | Availability Weight | Rating Weight | Strategy |
+|----------|-------------------|--------------|----------|
+| Urgent/High | 70% | 30% | Get seen quickly |
+| Low/Medium | 40% | 60% | Prioritize quality |
+
+**Data Source:** `schedules.json` (7 hospitals, 21 doctors, 8 specialties)
+
+**Key Features:**
+- Multi-criteria severity-adaptive slot ranking
+- City fallback — searches all cities if none found in requested city
+- Graceful LLM fallback — works fully without Ollama
+- Web UI card with booking details panel and expandable alternatives accordion
 
 ---
 

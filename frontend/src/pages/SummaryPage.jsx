@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 function sanitizeText(value) {
@@ -111,6 +111,89 @@ function StatCard({ label, value, icon, gradient }) {
           <div className="mt-1">{value}</div>
         </div>
         <span className="text-3xl">{icon}</span>
+      </div>
+    </div>
+  );
+}
+
+function AlternativesList({ alternatives }) {
+  const [expandedIdx, setExpandedIdx] = useState(null);
+
+  const toggle = (i) => setExpandedIdx(expandedIdx === i ? null : i);
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 p-4 border border-amber-200 mt-2">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-3">
+        📋 Alternative Options ({alternatives.length})
+      </p>
+      <div className="space-y-2">
+        {alternatives.map((alt, i) => (
+          <div key={i} className="rounded-lg border border-amber-200 bg-white overflow-hidden shadow-sm">
+            {/* Header — always visible, clickable */}
+            <button
+              onClick={() => toggle(i)}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-amber-50 transition-colors duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
+                  {i + 1}
+                </span>
+                <span className="text-sm font-medium text-slate-800">
+                  {alt.doctor_name}
+                </span>
+                <span className="text-xs text-slate-500">
+                  @ {alt.hospital_name}
+                </span>
+              </div>
+              <span className={`text-slate-400 transition-transform duration-300 ${expandedIdx === i ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {/* Expanded details */}
+            <div
+              className="transition-all duration-300 ease-in-out overflow-hidden"
+              style={{ maxHeight: expandedIdx === i ? '400px' : '0px', opacity: expandedIdx === i ? 1 : 0 }}
+            >
+              <div className="px-3 pb-3 pt-1 border-t border-amber-100 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Day & Time</p>
+                    <p className="text-sm font-semibold text-slate-800">{alt.day} | {alt.time_slot}</p>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Rating</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {'⭐'.repeat(Math.floor(alt.doctor_rating || 0))} ({alt.doctor_rating || 'N/A'}/5.0)
+                    </p>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Booking No</p>
+                    <p className="text-sm font-bold text-emerald-600">#{alt.booking_number || 'N/A'}</p>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Est. Time</p>
+                    <p className="text-sm font-bold text-blue-600">{alt.estimated_time || 'N/A'}</p>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Seats Left</p>
+                    <p className="text-sm font-bold text-purple-600">{alt.available || 'N/A'}/{alt.max_patients || 'N/A'}</p>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Fee</p>
+                    <p className="text-sm font-bold text-slate-800">LKR {alt.consultation_fee || 'N/A'}</p>
+                  </div>
+                </div>
+                {alt.qualifications && (
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Qualifications</p>
+                    <p className="text-sm text-slate-700">{alt.qualifications}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -251,8 +334,8 @@ export default function SummaryPage() {
             />
           </div>
 
-          {/* Main Cards Grid - PRESERVING ALL ORIGINAL FIELDS */}
-          <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main Cards Grid */}
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Symptom Triage Card */}
             <InfoCard 
               title="Symptom Triage" 
@@ -286,10 +369,71 @@ export default function SummaryPage() {
               </div>
             </InfoCard>
 
-            {/* Travel Risk Card - PRESERVING ALL ORIGINAL FIELDS WITHOUT ADDITIONS ()*/}
+            {/* Appointment Coordinator Card (Member 3) */}
+            <InfoCard 
+              title="Appointment Coordinator" 
+              icon="📅" 
+              gradient="from-emerald-500 to-green-500"
+              delay={250}
+            >
+              {(() => {
+                const appt = state.appointment || {};
+                if (!appt || appt.error) {
+                  return (
+                    <div className="space-y-3">
+                      <KV label="Status" value={appt?.error || 'No appointment data'} icon="❌" />
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    <KV label="Doctor" value={appt.doctor_name} icon="👨‍⚕️" />
+                    <KV label="Qualifications" value={appt.qualifications} icon="🎓" />
+                    <KV label="Hospital" value={`${appt.hospital_name || 'N/A'}, ${appt.hospital_city || ''}`} icon="🏥" />
+                    <KV label="Day & Time" value={`${appt.day || 'N/A'} | ${appt.time_slot || 'N/A'}`} icon="🕐" />
+                    <KV label="Doctor Rating" value={appt.doctor_rating ? `${'⭐'.repeat(Math.floor(appt.doctor_rating))} (${appt.doctor_rating}/5.0)` : 'N/A'} icon="⭐" />
+                    <KV label="Consultation Fee" value={appt.consultation_fee ? `LKR ${appt.consultation_fee}` : 'N/A'} icon="💰" />
+                    
+                    {/* Booking Details */}
+                    <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 p-4 border border-emerald-200 mt-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 mb-3">📋 Booking Details</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+                          <p className="text-xs text-slate-500">Booking No</p>
+                          <p className="text-lg font-bold text-emerald-600">#{appt.booking_number || 'N/A'}</p>
+                        </div>
+                        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+                          <p className="text-xs text-slate-500">Est. Time</p>
+                          <p className="text-lg font-bold text-blue-600">{appt.estimated_time || 'N/A'}</p>
+                        </div>
+                        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+                          <p className="text-xs text-slate-500">Queue</p>
+                          <p className="text-lg font-bold text-orange-600">{appt.booked || 0}</p>
+                          <p className="text-xs text-slate-400">before you</p>
+                        </div>
+                        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+                          <p className="text-xs text-slate-500">Seats Left</p>
+                          <p className="text-lg font-bold text-purple-600">{appt.available || 'N/A'}/{appt.max_patients || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {appt.llm_reasoning && (
+                      <KV label="AI Recommendation" value={appt.llm_reasoning} icon="🤖" />
+                    )}
+
+                    {appt.alternatives && appt.alternatives.length > 0 && (
+                      <AlternativesList alternatives={appt.alternatives} />
+                    )}
+                  </div>
+                );
+              })()}
+            </InfoCard>
+
+            {/* Travel Risk Card */}
             <InfoCard 
               title="Travel Risk" 
-              icon="✈️" 
+              icon="🚗" 
               gradient="from-teal-500 to-emerald-500"
               delay={300}
             >
@@ -298,7 +442,7 @@ export default function SummaryPage() {
                 <KV label="To" value={travel.destination_city || state.hospital_city} icon="🎯" />
                 <KV label="Distance" value={travel.distance_km != null ? `${travel.distance_km} km` : 'Unable to calculate'} icon="📏" />
                 <KV label="Time" value={travel.travel_time_hours != null ? `${travel.travel_time_hours} hours` : 'Unable to calculate'} icon="⏰" />
-                <KV label="Risk Level" value={triage.severity} icon="⚠️" />
+                <KV label="Risk Level" value={risk.risk_level || triage.severity} icon="⚠️" />
                 <KV label="Recommendation" value={risk.llm_reasoning || risk.recommendation || 'No recommendation available'} icon="💡" />
               </div>
             </InfoCard>

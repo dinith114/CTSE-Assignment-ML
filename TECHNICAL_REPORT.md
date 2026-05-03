@@ -148,22 +148,32 @@ Each node is a LangGraph node registered via `StateGraph.add_node()` and connect
 **File:** `app/agents/appointment_coordinator_agent.py`
 
 **System Prompt (embedded in agent):**
-> *"You are an Appointment Coordinator Agent in a Sri Lankan healthcare e-channeling system. Given the patient's severity, specialist need, and available doctor schedules, explain in 1-2 sentences why this specific appointment slot was recommended."*
+> *"You are an Appointment Coordinator Agent in a Sri Lankan healthcare e-channeling system. Given the patient's severity, specialist need, and available doctor schedules, explain in 1-2 sentences why this specific appointment slot was recommended. Consider urgency, doctor availability, and patient convenience."*
 
 **Reasoning Logic:**
-1. `ScheduleOptimizerTool` queries `schedules.json` to find all available slots matching the specialist and city.
-2. Slots are scored using a multi-criteria algorithm:
+1. `ScheduleOptimizerTool` queries `schedules.json` (7 hospitals, 21 doctors, 8 specialties) to find all available slots matching the specialist and city.
+2. Slots are scored using a **multi-criteria, severity-adaptive algorithm**:
    - **Urgent/High severity:** 70% weight on availability ratio, 30% on doctor rating (prioritizes getting seen quickly).
    - **Low/Medium severity:** 60% weight on doctor rating, 40% on availability (prioritizes quality of care).
-3. Best slot is returned with up to 2 alternatives.
+3. Best slot is returned with:
+   - **Booking number** (queue position, e.g., `#9`)
+   - **Estimated consultation time** (calculated from slot start time + queue × avg 15 min)
+   - **Queue size** (how many patients are before you)
+   - **Seat availability** (remaining vs total capacity)
+   - Up to **2 alternatives** with full details (expandable in Web UI)
 4. LLM generates a human-readable justification for why this slot was chosen.
+5. Graceful fallback: if Ollama is unavailable, rule-based recommendation is used.
 
 **Constraints:**
 - Fully booked slots (`booked >= max_patients`) are filtered out before scoring.
 - Falls back to all cities if no slots are found in the requested city.
+- LLM prompt is constrained to 1-2 sentences with no invented facts.
+- Error handling: validates that `specialist` exists in state; returns structured error if missing.
 
 **Input:** `specialist`, `hospital_city`, `severity`
-**Output:** `appointment` (doctor name, hospital, time slot, rating, alternatives, LLM reasoning)
+**Output:** `appointment` (doctor name, qualifications, hospital, time slot, rating, fee, booking_number, estimated_time, queue, seats, alternatives, LLM reasoning)
+
+**Web UI Integration:** The appointment card is displayed in the React frontend (`SummaryPage.jsx`) with a dedicated booking details panel and expandable alternative options accordion.
 
 ---
 
@@ -249,20 +259,32 @@ result = tool.find_hospitals_by_specialty("Cardiologist")
 
 **File:** `app/tools/schedule_optimizer_tool.py`
 
-**Purpose:** Queries doctor schedules, scores and ranks appointment slots using a multi-criteria algorithm that adapts to patient severity.
+**Purpose:** Queries doctor schedules, scores and ranks appointment slots using a multi-criteria algorithm that adapts to patient severity. Provides booking metadata including queue position, estimated consultation time, and seat availability.
 
-**API / File Interaction:** Reads `app/data/schedules.json`. Filters by specialty, city, and availability. Applies urgency-weighted scoring.
+**API / File Interaction:** Reads `app/data/schedules.json` (7 hospitals, 21 doctors across 8 specialties). Filters by specialty, city, and availability. Applies urgency-weighted scoring.
+
+**Key Methods:**
+- `_filter_by_specialty(specialty, city)` — Finds matching slots, skips fully booked
+- `_estimate_consultation_time(start_time, patients_before, avg_minutes)` — Calculates estimated start time
+- `_score_slot(slot, severity)` — Severity-adaptive multi-criteria scoring
+- `find_available_slots(specialty, city, severity)` — Full filtered + ranked list
+- `get_next_available(specialty, city, severity)` — Best slot + 2 alternatives
 
 **Example Usage:**
 ```python
 tool = ScheduleOptimizerTool(data_file="app/data/schedules.json")
-best = tool.get_next_available("Cardiologist", "Colombo", "urgent")
+best = tool.get_next_available("Cardiologist", "Kandy", "urgent")
 # Output: {
-#   "doctor_name": "Dr. Ruwan Perera",
-#   "hospital_name": "Nawaloka Hospital",
-#   "day": "Friday", "time_slot": "09:00 - 12:00",
+#   "doctor_name": "Dr. Anura Bandara",
+#   "qualifications": "MBBS, MD, FRCP (Edinburgh)",
+#   "hospital_name": "Asiri Hospital",
+#   "hospital_city": "Kandy, Sri Lanka",
+#   "day": "Saturday", "time_slot": "08:00 - 13:00",
+#   "doctor_rating": 4.5, "consultation_fee": 3000,
+#   "booking_number": 6, "estimated_time": "09:15",
+#   "booked": 5, "available": 15, "max_patients": 20,
 #   "urgency_score": 0.85,
-#   "alternatives": [...]
+#   "alternatives": [{...}, {...}]  # Up to 2 backup options with full details
 # }
 ```
 
@@ -446,9 +468,15 @@ python tests/test_travel_risk_agent.py
 - **Challenges Faced:** Handling LLM output variability — the model sometimes returned specialist names with extra punctuation or qualifiers. Solved by stripping quotes, periods, and whitespace from LLM output.
 
 ### Member 3 — Appointment Coordinator Agent
-- **Agent Developed:** `AppointmentCoordinatorAgent` — Finds and ranks optimal appointment slots.
-- **Tool Implemented:** `ScheduleOptimizerTool` — Multi-criteria slot scoring (availability ratio + doctor rating) with severity-adaptive weighting.
-- **Challenges Faced:** Designing a fair scoring algorithm that balances urgency (get seen quickly) with quality (highly-rated doctor). Solved by using different weight distributions for urgent vs. regular cases.
+- **Agent Developed:** `AppointmentCoordinatorAgent` — Finds and ranks optimal appointment slots with booking number, estimated consultation time, queue position, and seat availability.
+- **Tool Implemented:** `ScheduleOptimizerTool` — Multi-criteria slot scoring (availability ratio + doctor rating) with severity-adaptive weighting. Includes `_estimate_consultation_time()` method for queue-based time prediction.
+- **Frontend Contribution:** Added the Appointment Coordinator card to `SummaryPage.jsx` with a booking details panel (2×2 grid showing booking #, estimated time, queue, seats) and an expandable alternatives accordion with full doctor details per alternative.
+- **Data:** Expanded `schedules.json` to 7 hospitals, 21 doctors across 8 specialties (Cardiology, Neurology, Orthopedics, Dermatology, Pulmonology, General Medicine, Gastroenterology, Ophthalmology).
+- **Tests Written:** 9 test cases in `test_schedule_optimizer.py` covering slot filtering, urgency scoring, city fallback, alternatives, state validation, and error handling.
+- **Challenges Faced:** 
+  1. Designing a fair scoring algorithm that balances urgency with quality — solved by using different weight distributions (70/30 for urgent, 60/40 for regular).
+  2. Estimating consultation time from queue position — solved by calculating `start_time + (patients_before × 15 min)`.
+  3. Handling the case where routing agent crashes (LLM parsing error) but appointment agent should still work — solved by adding fallback defaults for `specialist` and `hospital_city` in `workflow.py`.
 
 ### Member 4 — Travel Risk Assessment Agent
 - **Agent Developed:** `TravelRiskAgent` — Evaluates travel feasibility and generates safety recommendations.
