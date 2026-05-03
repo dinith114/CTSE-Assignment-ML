@@ -41,7 +41,7 @@ class SymptomTriageAgent:
 
     Your responsibilities:
     1. Read the patient's symptom description.
-    2. Extract reported symptoms accurately.
+    2. Extract reported symptoms. IMPORTANT: Correct any spelling mistakes or slang into standard medical terms (e.g., "headace" -> "headache", "belly hurts" -> "abdominal pain") so the system can understand them.
     3. Determine severity (low, medium, high) and urgency (routine, priority, urgent).
     4. Identify red-flag symptoms.
 
@@ -54,8 +54,11 @@ class SymptomTriageAgent:
     Output Format:
     You must return your findings in strict JSON format with the following keys:
     {
+        "extracted_symptoms": ["list", "of", "all", "symptoms", "found"],
         "triage_summary_note": "A concise, 1-2 sentence clinical summary of the reported symptoms."
     }
+    
+    IMPORTANT: Provide ONLY the raw JSON object. Do not include markdown code blocks (like ```json). Do not add any conversational text before or after the JSON.
     """
 
     def __init__(self) -> None:
@@ -76,25 +79,74 @@ class SymptomTriageAgent:
         logger.info("%s: Starting symptom triage", self.agent_name)
 
         patient_text = state.get("patient_text", "")
+        
+        # Robust error handling for the state input
+        if not patient_text or not isinstance(patient_text, str) or not patient_text.strip():
+            logger.error("%s: Validation error - Symptom description cannot be empty.", self.agent_name)
+            triage_result = {
+                "symptoms": [],
+                "severity": "low",
+                "urgency": "routine",
+                "red_flags": [],
+                "triage_note": "Failed to generate summary.",
+                "confidence": 0.85,
+                "safety_disclaimer": "This is an AI-generated triage summary for specialist routing only, not a medical diagnosis.",
+                "emergency_logged": False
+            }
+            state.update(triage_result)
+            return state
 
         try:
-            # 1. Use the deterministic Python tool for extracting structured flags safely
-            triage_result = symptom_parser_tool(patient_text)
-
-            # 2. Use the SLM to create a clinical summary based on the prompt constraints,
-            # demonstrating pure prompt engineering and SLM capabilities.
+            # 1. Use the SLM FIRST to extract symptoms, correct spelling, and create a clinical summary.
             llm_prompt = f"{self.SYSTEM_PROMPT}\n\nPatient Input: {patient_text}\n\nTriage JSON:"
             llm_response = run_ollama(llm_prompt)
             
+            corrected_symptoms = []
+            triage_note = ""
+            
             if llm_response:
                 try:
-                    # Attempt to parse SLM JSON output, allowing unescaped control chars like newlines
-                    json_str = llm_response[llm_response.find("{"):llm_response.rfind("}")+1]
-                    llm_data = json.loads(json_str, strict=False)
-                    if "triage_summary_note" in llm_data:
-                        triage_result["triage_note"] = llm_data["triage_summary_note"]
+                    import re
+                    # Find everything from the first '{' to the last '}' spanning across newlines
+                    json_match = re.search(r'\{.*\}', llm_response, re.DOTALL)
+                    
+                    if json_match:
+                        json_str = json_match.group(0)
+                        
+                        # Replace newlines with spaces to avoid unescaped newline JSON errors
+                        json_str = json_str.replace('\n', ' ').replace('\r', ' ')
+                        
+                        llm_data = json.loads(json_str, strict=False)
+                        
+                        if "triage_summary_note" in llm_data:
+                            triage_note = llm_data["triage_summary_note"]
+                        
+                        # Dynamically capture ALL symptoms the LLM found and corrected
+                        if "extracted_symptoms" in llm_data and isinstance(llm_data["extracted_symptoms"], list):
+                            corrected_symptoms = llm_data["extracted_symptoms"]
+
                 except Exception as e:
-                    logger.warning(f"Failed to parse LLM JSON response: {e}")
+                    logger.warning(f"Failed to parse LLM JSON response: {e}\nRaw LLM output was: {llm_response}")
+
+            # 2. Enrich the text with the LLM's corrected spelling so the Python tool can catch it
+            enriched_text = patient_text + " " + " ".join(corrected_symptoms)
+
+            # 3. Use the deterministic Python tool for extracting structured flags & severity safely based on enriched text
+            triage_result = symptom_parser_tool(enriched_text)
+            
+            if triage_note:
+                triage_result["triage_note"] = triage_note
+
+            # Ensure we keep the LLM's dynamic symptoms alongside the tool's strict ones
+            if corrected_symptoms:
+                # Generically merge all symptoms from both the Tool and the LLM, removing duplicates.
+                # Since the System Prompt strictly dictates the LLM to correct spelling to medical standards,
+                # this generically captures all corrected terms without needing to hardcode typos.
+                triage_result["symptoms"] = list(set(triage_result["symptoms"] + corrected_symptoms))
+
+            # Update red flags to a meaningful message if empty
+            if not triage_result["red_flags"]:
+                triage_result["red_flags"] = ["No immediate life-threatening conditions detected."]
 
             state["symptoms"] = triage_result["symptoms"]
             state["severity"] = triage_result["severity"]
