@@ -29,6 +29,7 @@ class EChannelState(TypedDict, total=False):
     triage_result: Dict[str, Any]
     doctors: list
     routing_reason: str
+    alternative_specialists: list
 
 
 def symptom_triage_node(state: EChannelState) -> EChannelState:
