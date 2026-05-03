@@ -1,0 +1,390 @@
+{
+  "hospitals": [
+    {
+      "id": "H001",
+      "name": "Nawaloka Hospital",
+      "city": "Colombo, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "Cardiologist",
+          "doctors": [
+            {
+              "id": "D001",
+              "name": "Dr. Ruwan Perera",
+              "qualifications": "MD, MRCP (UK), FACC",
+              "consultation_fee": 3500,
+              "rating": 4.8,
+              "available_slots": [
+                { "day": "Monday", "start": "09:00", "end": "13:00", "max_patients": 15, "booked": 10 },
+                { "day": "Wednesday", "start": "14:00", "end": "18:00", "max_patients": 12, "booked": 12 },
+                { "day": "Friday", "start": "09:00", "end": "12:00", "max_patients": 10, "booked": 2 }
+              ]
+            },
+            {
+              "id": "D002",
+              "name": "Dr. Kamal Silva",
+              "qualifications": "MBBS, MD (Cardiology)",
+              "consultation_fee": 2500,
+              "rating": 4.2,
+              "available_slots": [
+                { "day": "Tuesday", "start": "16:00", "end": "20:00", "max_patients": 20, "booked": 5 },
+                { "day": "Thursday", "start": "16:00", "end": "20:00", "max_patients": 20, "booked": 18 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Neurologist",
+          "doctors": [
+            {
+              "id": "D003",
+              "name": "Dr. Sunethra Fernando",
+              "qualifications": "MD, FRCP (London), Board Certified Neurologist",
+              "consultation_fee": 4000,
+              "rating": 4.9,
+              "available_slots": [
+                { "day": "Monday", "start": "10:00", "end": "14:00", "max_patients": 10, "booked": 8 },
+                { "day": "Thursday", "start": "10:00", "end": "14:00", "max_patients": 10, "booked": 2 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Gastroenterologist",
+          "doctors": [
+            {
+              "id": "D010",
+              "name": "Dr. Priyantha Wijesinghe",
+              "qualifications": "MBBS, MD, MRCP (Gastroenterology)",
+              "consultation_fee": 3200,
+              "rating": 4.6,
+              "available_slots": [
+                { "day": "Tuesday", "start": "09:00", "end": "13:00", "max_patients": 12, "booked": 6 },
+                { "day": "Saturday", "start": "09:00", "end": "12:00", "max_patients": 10, "booked": 3 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Ophthalmologist",
+          "doctors": [
+            {
+              "id": "D014",
+              "name": "Dr. Lakshmi Rajapaksa",
+              "qualifications": "MBBS, MS (Ophthalmology), FRCS",
+              "consultation_fee": 3000,
+              "rating": 4.7,
+              "available_slots": [
+                { "day": "Wednesday", "start": "09:00", "end": "13:00", "max_patients": 15, "booked": 8 },
+                { "day": "Friday", "start": "14:00", "end": "17:00", "max_patients": 10, "booked": 4 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H002",
+      "name": "Asiri Hospital",
+      "city": "Kandy, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "Cardiologist",
+          "doctors": [
+            {
+              "id": "D004",
+              "name": "Dr. Anura Bandara",
+              "qualifications": "MBBS, MD, FRCP (Edinburgh)",
+              "consultation_fee": 3000,
+              "rating": 4.5,
+              "available_slots": [
+                { "day": "Tuesday", "start": "08:00", "end": "12:00", "max_patients": 15, "booked": 15 },
+                { "day": "Saturday", "start": "08:00", "end": "13:00", "max_patients": 20, "booked": 5 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Orthopedic",
+          "doctors": [
+            {
+              "id": "D005",
+              "name": "Dr. Nalin Kumara",
+              "qualifications": "MBBS, MS (Ortho), Fellow APOA",
+              "consultation_fee": 2800,
+              "rating": 4.3,
+              "available_slots": [
+                { "day": "Wednesday", "start": "15:00", "end": "19:00", "max_patients": 15, "booked": 7 },
+                { "day": "Friday", "start": "09:00", "end": "13:00", "max_patients": 12, "booked": 3 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Neurologist",
+          "doctors": [
+            {
+              "id": "D011",
+              "name": "Dr. Thilina Jayawardena",
+              "qualifications": "MBBS, MD (Neurology)",
+              "consultation_fee": 3500,
+              "rating": 4.4,
+              "available_slots": [
+                { "day": "Monday", "start": "14:00", "end": "18:00", "max_patients": 10, "booked": 4 },
+                { "day": "Thursday", "start": "08:00", "end": "12:00", "max_patients": 12, "booked": 9 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "General Physician",
+          "doctors": [
+            {
+              "id": "D015",
+              "name": "Dr. Chamara Rathnayake",
+              "qualifications": "MBBS, MD (General Medicine)",
+              "consultation_fee": 1800,
+              "rating": 4.1,
+              "available_slots": [
+                { "day": "Monday", "start": "08:00", "end": "12:00", "max_patients": 30, "booked": 12 },
+                { "day": "Wednesday", "start": "08:00", "end": "12:00", "max_patients": 30, "booked": 8 },
+                { "day": "Friday", "start": "08:00", "end": "12:00", "max_patients": 30, "booked": 20 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H003",
+      "name": "Karapitiya Teaching Hospital",
+      "city": "Galle, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "Pulmonologist",
+          "doctors": [
+            {
+              "id": "D006",
+              "name": "Dr. Chaminda Jayasuriya",
+              "qualifications": "MBBS, MD (Respiratory Medicine), FCCP",
+              "consultation_fee": 2000,
+              "rating": 4.7,
+              "available_slots": [
+                { "day": "Monday", "start": "08:00", "end": "12:00", "max_patients": 30, "booked": 25 },
+                { "day": "Friday", "start": "08:00", "end": "12:00", "max_patients": 30, "booked": 10 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "General Physician",
+          "doctors": [
+            {
+              "id": "D007",
+              "name": "Dr. Saman Kumara",
+              "qualifications": "MBBS, MD (General Medicine)",
+              "consultation_fee": 1500,
+              "rating": 4.0,
+              "available_slots": [
+                { "day": "Monday", "start": "16:00", "end": "20:00", "max_patients": 40, "booked": 15 },
+                { "day": "Tuesday", "start": "16:00", "end": "20:00", "max_patients": 40, "booked": 20 },
+                { "day": "Wednesday", "start": "16:00", "end": "20:00", "max_patients": 40, "booked": 5 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Dermatologist",
+          "doctors": [
+            {
+              "id": "D012",
+              "name": "Dr. Nishantha De Silva",
+              "qualifications": "MBBS, MD (Dermatology)",
+              "consultation_fee": 2200,
+              "rating": 4.3,
+              "available_slots": [
+                { "day": "Tuesday", "start": "09:00", "end": "13:00", "max_patients": 20, "booked": 12 },
+                { "day": "Thursday", "start": "14:00", "end": "17:00", "max_patients": 15, "booked": 5 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H004",
+      "name": "Teaching Hospital Jaffna",
+      "city": "Jaffna, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "Dermatologist",
+          "doctors": [
+            {
+              "id": "D008",
+              "name": "Dr. R. Sivaraman",
+              "qualifications": "MBBS, MD (Dermatology), FRCP",
+              "consultation_fee": 2200,
+              "rating": 4.6,
+              "available_slots": [
+                { "day": "Thursday", "start": "09:00", "end": "13:00", "max_patients": 25, "booked": 20 },
+                { "day": "Saturday", "start": "09:00", "end": "12:00", "max_patients": 15, "booked": 2 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "General Physician",
+          "doctors": [
+            {
+              "id": "D013",
+              "name": "Dr. K. Ragunathan",
+              "qualifications": "MBBS, MD",
+              "consultation_fee": 1500,
+              "rating": 4.2,
+              "available_slots": [
+                { "day": "Monday", "start": "08:00", "end": "14:00", "max_patients": 40, "booked": 18 },
+                { "day": "Wednesday", "start": "08:00", "end": "14:00", "max_patients": 40, "booked": 10 },
+                { "day": "Friday", "start": "08:00", "end": "14:00", "max_patients": 40, "booked": 25 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H005",
+      "name": "Provincial General Hospital Kurunegala",
+      "city": "Kurunegala, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "ENT",
+          "doctors": [
+            {
+              "id": "D009",
+              "name": "Dr. Wasantha Herath",
+              "qualifications": "MBBS, DLO, MS (ENT)",
+              "consultation_fee": 2600,
+              "rating": 4.4,
+              "available_slots": [
+                { "day": "Wednesday", "start": "14:00", "end": "18:00", "max_patients": 20, "booked": 10 },
+                { "day": "Saturday", "start": "09:00", "end": "13:00", "max_patients": 25, "booked": 25 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Orthopedic",
+          "doctors": [
+            {
+              "id": "D016",
+              "name": "Dr. Roshan Abeywickrama",
+              "qualifications": "MBBS, MS (Ortho)",
+              "consultation_fee": 2500,
+              "rating": 4.2,
+              "available_slots": [
+                { "day": "Monday", "start": "14:00", "end": "18:00", "max_patients": 15, "booked": 6 },
+                { "day": "Thursday", "start": "09:00", "end": "13:00", "max_patients": 15, "booked": 10 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H006",
+      "name": "Lanka Hospital",
+      "city": "Colombo, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "Pulmonologist",
+          "doctors": [
+            {
+              "id": "D017",
+              "name": "Dr. Indika Galappaththi",
+              "qualifications": "MBBS, MD, FRCP (Respiratory)",
+              "consultation_fee": 3800,
+              "rating": 4.8,
+              "available_slots": [
+                { "day": "Tuesday", "start": "10:00", "end": "14:00", "max_patients": 12, "booked": 4 },
+                { "day": "Thursday", "start": "14:00", "end": "18:00", "max_patients": 12, "booked": 8 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Cardiologist",
+          "doctors": [
+            {
+              "id": "D018",
+              "name": "Dr. Manuja Weerasinghe",
+              "qualifications": "MBBS, MD, FACC, FSCAI",
+              "consultation_fee": 4500,
+              "rating": 4.9,
+              "available_slots": [
+                { "day": "Monday", "start": "08:00", "end": "12:00", "max_patients": 8, "booked": 6 },
+                { "day": "Wednesday", "start": "08:00", "end": "12:00", "max_patients": 8, "booked": 2 },
+                { "day": "Friday", "start": "14:00", "end": "17:00", "max_patients": 6, "booked": 1 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Gastroenterologist",
+          "doctors": [
+            {
+              "id": "D019",
+              "name": "Dr. Harsha Mudalige",
+              "qualifications": "MBBS, MD, MRCP (Gastro)",
+              "consultation_fee": 3500,
+              "rating": 4.5,
+              "available_slots": [
+                { "day": "Monday", "start": "14:00", "end": "18:00", "max_patients": 10, "booked": 7 },
+                { "day": "Thursday", "start": "09:00", "end": "13:00", "max_patients": 12, "booked": 3 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H007",
+      "name": "Batticaloa Teaching Hospital",
+      "city": "Batticaloa, Sri Lanka",
+      "departments": [
+        {
+          "specialty": "General Physician",
+          "doctors": [
+            {
+              "id": "D020",
+              "name": "Dr. M. Shanmugarajah",
+              "qualifications": "MBBS, MD (General Medicine)",
+              "consultation_fee": 1500,
+              "rating": 4.0,
+              "available_slots": [
+                { "day": "Monday", "start": "08:00", "end": "14:00", "max_patients": 50, "booked": 20 },
+                { "day": "Wednesday", "start": "08:00", "end": "14:00", "max_patients": 50, "booked": 15 },
+                { "day": "Friday", "start": "08:00", "end": "14:00", "max_patients": 50, "booked": 30 }
+              ]
+            }
+          ]
+        },
+        {
+          "specialty": "Orthopedic",
+          "doctors": [
+            {
+              "id": "D021",
+              "name": "Dr. T. Premkumar",
+              "qualifications": "MBBS, MS (Ortho)",
+              "consultation_fee": 2000,
+              "rating": 4.1,
+              "available_slots": [
+                { "day": "Tuesday", "start": "09:00", "end": "13:00", "max_patients": 15, "booked": 5 },
+                { "day": "Saturday", "start": "09:00", "end": "12:00", "max_patients": 12, "booked": 4 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

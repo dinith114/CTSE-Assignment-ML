@@ -233,19 +233,19 @@ export default function SummaryPage() {
             />
             <StatCard 
               label="Risk Assessment" 
-              value={<RiskBadge riskLevel={risk.risk_level} />} 
+              value={<RiskBadge riskLevel={triage.severity} />} 
               icon="🎯" 
               gradient="from-orange-500 to-amber-500"
             />
             <StatCard 
               label="Distance" 
-              value={travel.distance_km != null ? `${travel.distance_km} km` : 'N/A'} 
+              value={travel.distance_km != null ? `${travel.distance_km} km` : 'Unable to calculate'} 
               icon="📍" 
               gradient="from-blue-500 to-cyan-500"
             />
             <StatCard 
               label="Travel Time" 
-              value={travel.travel_time_hours != null ? `${travel.travel_time_hours} hours` : 'N/A'} 
+              value={travel.travel_time_hours != null ? `${travel.travel_time_hours} hours` : 'Unable to calculate'} 
               icon="⏱️" 
               gradient="from-purple-500 to-indigo-500"
             />
@@ -277,16 +277,34 @@ export default function SummaryPage() {
             >
               <div className="space-y-3">
                 <KV label="Specialist" value={state.specialist} icon="👨‍⚕️" />
+                <KV label="Alternative Specialists" value={(state.alternative_specialists || state.routing?.alternative_specialists || []).join(', ') || 'None'} icon="🔄" />
                 <KV label="Routing Reason" value={state.routing_reason || state.routing?.reason} icon="🎯" />
-                <KV 
-                  label="Doctors" 
-                  value={(state.doctors || []).length ? JSON.stringify(state.doctors, null, 2) : 'No doctors found'} 
-                  icon="👩‍⚕️" 
-                />
+                <div className="rounded-xl bg-gradient-to-br from-slate-50 to-white p-3 border border-slate-100 hover:border-cyan-200 hover:shadow-md transition-all duration-200 group">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm group-hover:scale-110 transition-transform">👩‍⚕️</span>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Doctors</p>
+                  </div>
+                  {state.doctors && state.doctors.length > 0 ? (
+                    <div className="space-y-3">
+                      {state.doctors.map((doc, idx) => (
+                        <div key={idx} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                          <h4 className="font-semibold text-slate-800">{doc.name}</h4>
+                          <div className="mt-2 text-sm text-slate-600 space-y-1">
+                            <p>🩺 <span className="capitalize">{doc.specialty}</span></p>
+                            <p>🏥 {doc.hospital} ({doc.location})</p>
+                            <p>📅 {Array.isArray(doc.available_days) ? doc.available_days.join(', ') : doc.available_days}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-800 font-medium">No doctors found</p>
+                  )}
+                </div>
               </div>
             </InfoCard>
 
-            {/* Travel Risk Card - PRESERVING ALL ORIGINAL FIELDS WITHOUT ADDITIONS */}
+            {/* Travel Risk Card - PRESERVING ALL ORIGINAL FIELDS WITHOUT ADDITIONS ()*/}
             <InfoCard 
               title="Travel Risk" 
               icon="✈️" 
@@ -296,12 +314,10 @@ export default function SummaryPage() {
               <div className="space-y-3">
                 <KV label="From" value={travel.source_city || state.patient_city} icon="📍" />
                 <KV label="To" value={travel.destination_city || state.hospital_city} icon="🎯" />
-                <KV label="Distance" value={travel.distance_km != null ? `${travel.distance_km} km` : 'N/A'} icon="📏" />
-                <KV label="Time" value={travel.travel_time_hours != null ? `${travel.travel_time_hours} hours` : 'N/A'} icon="⏰" />
-                <KV label="Risk Level" value={risk.risk_level} icon="⚠️" />
-                <KV label="Recommendation" value={risk.recommendation} icon="💡" />
-                <KV label="Route Advice" value={travel.route_advice} icon="🗺️" />
-                <KV label="LLM Reasoning" value={risk.llm_reasoning || 'N/A'} icon="🤖" />
+                <KV label="Distance" value={travel.distance_km != null ? `${travel.distance_km} km` : 'Unable to calculate'} icon="📏" />
+                <KV label="Time" value={travel.travel_time_hours != null ? `${travel.travel_time_hours} hours` : 'Unable to calculate'} icon="⏰" />
+                <KV label="Risk Level" value={triage.severity} icon="⚠️" />
+                <KV label="Recommendation" value={risk.llm_reasoning || risk.recommendation || 'No recommendation available'} icon="💡" />
               </div>
             </InfoCard>
           </div>

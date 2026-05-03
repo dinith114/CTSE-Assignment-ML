@@ -76,10 +76,11 @@ class DistanceCalculatorTool:
     
     def _geocode_city(self, city_name: str) -> Optional[Tuple[float, float]]:
         """
-        Convert city name to coordinates using Photon Komoot API.
+        Convert location name to coordinates using Nominatim API.
+        Handles both city names (e.g., 'Colombo', 'Homagama') and institution/landmark names.
         
         Args:
-            city_name: Name of the city (e.g., "Colombo, Sri Lanka")
+            city_name: Name of the city, institution, or landmark (e.g., "Colombo, Sri Lanka" or "Sri Lanka Institute of Information Technology")
             
         Returns:
             Tuple of (latitude, longitude) or None if not found
