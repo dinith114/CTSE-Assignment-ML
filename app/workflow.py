@@ -76,12 +76,18 @@ def medical_routing_node(state: EChannelState) -> EChannelState:
     except Exception as e:
         logger.error(f"Routing Error: {e}")
         state["error"] = "Routing agent failed"
+        # Ensure downstream agents still work with safe defaults
+        if not state.get("specialist"):
+            state["specialist"] = "General Physician"
+        if not state.get("hospital_city"):
+            state["hospital_city"] = state.get("patient_city", "Colombo, Sri Lanka")
         return state
 
 def appointment_coordinator_node(state: EChannelState) -> EChannelState:
     logger.info("Step 3: Appointment Coordinator Agent")
-    state["appointment"] = state.get("appointment") or {"date": "2024-12-15", "time": "10:00 AM"}
-    return state
+    from app.agents.appointment_coordinator_agent import AppointmentCoordinatorAgent
+    agent = AppointmentCoordinatorAgent()
+    return agent.process(state)
 
 
 def travel_risk_node(state: EChannelState) -> EChannelState:

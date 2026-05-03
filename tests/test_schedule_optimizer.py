@@ -175,5 +175,248 @@ class TestAppointmentCoordinatorAgent(unittest.TestCase):
         
         self.assertIn("error", result["appointment"])
 
+
+class TestPropertyBasedValidation(unittest.TestCase):
+    """Property-based tests to validate mathematical invariants of the scheduling algorithm."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.data_path = os.path.join(self.temp_dir.name, 'schedules.json')
+        
+        self.mock_data = {
+            "hospitals": [
+                {
+                    "id": "H001",
+                    "name": "Nawaloka Hospital",
+                    "city": "Colombo, Sri Lanka",
+                    "departments": [
+                        {
+                            "specialty": "Cardiologist",
+                            "doctors": [
+                                {
+                                    "id": "D001",
+                                    "name": "Dr. Ruwan Perera",
+                                    "rating": 4.8,
+                                    "qualifications": "MBBS, MD",
+                                    "consultation_fee": 3500,
+                                    "available_slots": [
+                                        { "day": "Monday", "start": "09:00", "end": "13:00", "max_patients": 20, "booked": 5 },
+                                        { "day": "Wednesday", "start": "14:00", "end": "18:00", "max_patients": 15, "booked": 14 },
+                                        { "day": "Friday", "start": "08:00", "end": "12:00", "max_patients": 10, "booked": 10 }
+                                    ]
+                                },
+                                {
+                                    "id": "D002",
+                                    "name": "Dr. Kamal Silva",
+                                    "rating": 3.5,
+                                    "qualifications": "MBBS",
+                                    "consultation_fee": 2000,
+                                    "available_slots": [
+                                        { "day": "Tuesday", "start": "10:00", "end": "14:00", "max_patients": 10, "booked": 0 }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        with open(self.data_path, 'w', encoding='utf-8') as f:
+            json.dump(self.mock_data, f)
+            
+        self.tool = ScheduleOptimizerTool(data_file=self.data_path)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_booking_number_equals_booked_plus_one(self):
+        """Property: booking_number must ALWAYS equal booked + 1."""
+        slots = self.tool.find_available_slots("Cardiologist", "Colombo", "medium")
+        for slot in slots:
+            self.assertEqual(
+                slot["booking_number"], slot["booked"] + 1,
+                f"Booking number invariant violated for {slot['doctor_name']} on {slot['day']}: "
+                f"booking_number={slot['booking_number']} but booked={slot['booked']}"
+            )
+
+    def test_estimated_time_is_after_or_equal_to_start(self):
+        """Property: estimated consultation time must ALWAYS be >= slot start time."""
+        slots = self.tool.find_available_slots("Cardiologist", "Colombo", "medium")
+        for slot in slots:
+            start_h, start_m = map(int, slot["time_slot"].split(" - ")[0].split(":"))
+            est_h, est_m = map(int, slot["estimated_time"].split(":"))
+            start_total = start_h * 60 + start_m
+            est_total = est_h * 60 + est_m
+            self.assertGreaterEqual(
+                est_total, start_total,
+                f"Estimated time {slot['estimated_time']} is before start time {slot['time_slot']} "
+                f"for {slot['doctor_name']} on {slot['day']}"
+            )
+
+    def test_urgency_score_is_bounded_zero_to_one(self):
+        """Property: urgency_score must ALWAYS be in range [0.0, 1.0]."""
+        for severity in ["low", "medium", "high", "urgent"]:
+            slots = self.tool.find_available_slots("Cardiologist", "Colombo", severity)
+            for slot in slots:
+                self.assertGreaterEqual(slot["urgency_score"], 0.0,
+                    f"Score below 0 for severity={severity}: {slot['urgency_score']}")
+                self.assertLessEqual(slot["urgency_score"], 1.0,
+                    f"Score above 1 for severity={severity}: {slot['urgency_score']}")
+
+    def test_fully_booked_slots_are_excluded(self):
+        """Property: slots where booked >= max_patients must NEVER appear in results."""
+        slots = self.tool.find_available_slots("Cardiologist", "Colombo", "medium")
+        for slot in slots:
+            self.assertGreater(
+                slot["available"], 0,
+                f"Fully booked slot leaked through: {slot['doctor_name']} {slot['day']} "
+                f"(booked={slot['booked']}, max={slot['max_patients']})"
+            )
+
+    def test_available_equals_max_minus_booked(self):
+        """Property: available seats must ALWAYS equal max_patients - booked."""
+        slots = self.tool.find_available_slots("Cardiologist", "Colombo", "medium")
+        for slot in slots:
+            self.assertEqual(
+                slot["available"], slot["max_patients"] - slot["booked"],
+                f"Availability mismatch for {slot['doctor_name']} on {slot['day']}"
+            )
+
+    def test_urgent_scores_higher_for_more_availability(self):
+        """Property: for urgent cases, a slot with more availability should score higher
+        than one with less availability (assuming same rating)."""
+        slots = self.tool.find_available_slots("Cardiologist", "Colombo", "urgent")
+        # D001 Monday (15 available) should score higher than D001 Wednesday (1 available)
+        if len(slots) >= 2:
+            high_avail = [s for s in slots if s["available"] > 5]
+            low_avail = [s for s in slots if s["available"] <= 5]
+            if high_avail and low_avail:
+                self.assertGreater(high_avail[0]["urgency_score"], low_avail[0]["urgency_score"])
+
+
+# ─────────────────────────────────────────────────────────────
+# LLM-as-a-Judge Evaluation
+# ─────────────────────────────────────────────────────────────
+
+def run_llm_as_judge_evaluation():
+    """
+    LLM-as-a-Judge evaluation for the Appointment Coordinator Agent.
+    
+    Uses local Ollama to judge whether the agent's appointment recommendations
+    are clinically reasonable given the patient's severity and specialist need.
+    
+    This runs OUTSIDE of unittest (requires Ollama to be running).
+    """
+    try:
+        from app.llm.ollama_client import run_ollama
+    except ImportError:
+        print("❌ Cannot import ollama_client. Ensure you're running from project root.")
+        return
+
+    print("\n" + "=" * 60)
+    print("🧑‍⚖️  LLM-as-a-Judge: Appointment Coordinator Evaluation")
+    print("=" * 60)
+
+    tool = ScheduleOptimizerTool(data_file="app/data/schedules.json")
+
+    # Define test scenarios
+    scenarios = [
+        {
+            "name": "Urgent Cardiologist in Kandy",
+            "specialty": "Cardiologist",
+            "city": "Kandy",
+            "severity": "urgent",
+            "expected_behavior": "Should prioritize availability over rating for urgent cases"
+        },
+        {
+            "name": "Low-severity Dermatologist in Colombo",
+            "specialty": "Dermatologist",
+            "city": "Colombo",
+            "severity": "low",
+            "expected_behavior": "Should prioritize higher-rated doctor for non-urgent cases"
+        },
+        {
+            "name": "General Physician fallback (no city match)",
+            "specialty": "General Physician",
+            "city": "Jaffna",
+            "severity": "medium",
+            "expected_behavior": "Should fall back to other cities if no match in Jaffna"
+        },
+    ]
+
+    results = []
+    for scenario in scenarios:
+        print(f"\n📋 Scenario: {scenario['name']}")
+        print(f"   Specialist: {scenario['specialty']}, City: {scenario['city']}, Severity: {scenario['severity']}")
+
+        recommendation = tool.get_next_available(
+            scenario["specialty"], scenario["city"], scenario["severity"]
+        )
+
+        if not recommendation:
+            print("   ⚠️  No recommendation generated (no matching slots)")
+            results.append({"scenario": scenario["name"], "verdict": "SKIP", "reason": "No slots available"})
+            continue
+
+        # Build judge prompt
+        judge_prompt = (
+            "You are a medical scheduling expert evaluating an AI appointment recommendation system. "
+            "Judge whether the following appointment recommendation is REASONABLE and SAFE.\n\n"
+            f"PATIENT CONTEXT:\n"
+            f"- Severity: {scenario['severity']}\n"
+            f"- Needs: {scenario['specialty']}\n"
+            f"- City: {scenario['city']}\n\n"
+            f"RECOMMENDATION:\n"
+            f"- Doctor: {recommendation.get('doctor_name')} (Rating: {recommendation.get('doctor_rating')}/5.0)\n"
+            f"- Hospital: {recommendation.get('hospital_name')}, {recommendation.get('hospital_city')}\n"
+            f"- Schedule: {recommendation.get('day')} {recommendation.get('time_slot')}\n"
+            f"- Booking #{recommendation.get('booking_number')}, Est. Time: {recommendation.get('estimated_time')}\n"
+            f"- Availability: {recommendation.get('available')}/{recommendation.get('max_patients')} seats\n\n"
+            f"EXPECTED BEHAVIOR: {scenario['expected_behavior']}\n\n"
+            "Respond with EXACTLY one of these verdicts on the first line, followed by a brief explanation:\n"
+            "PASS - if the recommendation is reasonable and aligns with expected behavior\n"
+            "FAIL - if the recommendation is unreasonable or potentially harmful\n"
+        )
+
+        print(f"   🏥 Recommended: {recommendation.get('doctor_name')} @ {recommendation.get('hospital_name')}")
+        print(f"   📅 {recommendation.get('day')} {recommendation.get('time_slot')} (Booking #{recommendation.get('booking_number')})")
+
+        # Call Ollama as judge
+        judge_response = run_ollama(prompt=judge_prompt, model="llama3.2:3b", timeout=30)
+
+        if not judge_response:
+            print("   ⚠️  LLM judge unavailable — skipping")
+            results.append({"scenario": scenario["name"], "verdict": "SKIP", "reason": "Ollama unavailable"})
+            continue
+
+        verdict = "PASS" if judge_response.strip().upper().startswith("PASS") else "FAIL"
+        emoji = "✅" if verdict == "PASS" else "❌"
+        print(f"   {emoji} Judge Verdict: {verdict}")
+        print(f"   💬 Judge says: {judge_response.strip()[:200]}")
+        results.append({"scenario": scenario["name"], "verdict": verdict, "reason": judge_response.strip()[:200]})
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("📊 LLM-as-a-Judge Summary")
+    print("=" * 60)
+    passed = sum(1 for r in results if r["verdict"] == "PASS")
+    failed = sum(1 for r in results if r["verdict"] == "FAIL")
+    skipped = sum(1 for r in results if r["verdict"] == "SKIP")
+    total = len(results)
+    
+    for r in results:
+        emoji = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️"}[r["verdict"]]
+        print(f"  {emoji} {r['scenario']}: {r['verdict']}")
+    
+    print(f"\nResults: {passed}/{total} PASSED, {failed} FAILED, {skipped} SKIPPED")
+    print("=" * 60)
+
+
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    import sys
+    if "--llm-judge" in sys.argv:
+        sys.argv.remove("--llm-judge")
+        run_llm_as_judge_evaluation()
+    else:
+        unittest.main(verbosity=2)
